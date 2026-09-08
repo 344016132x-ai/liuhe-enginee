@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>V34 走势分析系统 (完整版)</title>
+    <style>
+        :root{
+            --brand:#4f46e5; --brand-dark:#4338ca; --brand-soft:#eef2ff;
+            --success:#059669; --danger:#e11d48; --warning:#d97706;
+            --text:#1e293b; --muted:#64748b; --line:#dbe3ef; --bg:#f4f7fb; --card:#fff;
+        }
+        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+        html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Helvetica Neue",Arial,sans-serif;font-size:16px}
+        body{min-height:100vh;overflow-x:hidden}
+        button,input,textarea,select{font:inherit}
+        button{cursor:pointer;border:0}
+        svg{width:20px!important;height:20px!important;flex:0 0 20px}
+        header{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#4f46e5,#4338ca);color:#fff;box-shadow:0 3px 14px rgba(30,41,59,.14)}
+        header>div{max-width:860px;margin:auto;padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+        header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.02em}
+        header span{font-size:11px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);border-radius:999px;padding:5px 9px;white-space:nowrap}
+        main{padding:18px 12px 36px;overflow:visible!important}
+        main>.max-w-4xl{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+        section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 3px 12px rgba(15,23,42,.055)}
+        section h2{margin:0 0 14px;display:flex;align-items:center;gap:8px;font-size:19px;line-height:1.3;font-weight:800;color:#334155}
+        section h3{margin:0}
+        label{color:#475569;font-weight:700}
+        input[type=text],input[type=number],input[type=password],textarea,select{width:100%;border:1.5px solid #cfd9e8;border-radius:11px;background:#fff;color:#1e293b;padding:12px 13px;outline:none;min-height:44px}
+        textarea{min-height:94px;resize:vertical;line-height:1.55}
+        input:focus,textarea:focus,select:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(99,102,241,.12)}
+        input::placeholder,textarea::placeholder{color:#a1adbd}
+        select{width:auto;min-width:90px;padding:8px 32px 8px 10px;min-height:40px}
+        summary{list-style:none;display:flex;align-items:center;gap:7px;padding:10px 0;color:#475569;font-weight:800;cursor:pointer}
+        summary::-webkit-details-marker{display:none}
+        summary:before{content:"＋";display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;background:#eef2ff;color:#4f46e5;font-size:17px}
+        details[open] summary:before{content:"－"}
+        #quickAddBtn,#importDataBtn,#runAnalysisBtn,#saveClueBtn{display:block;width:100%;min-height:46px;border-radius:12px;font-weight:800;color:#fff;padding:12px 16px;box-shadow:0 2px 7px rgba(15,23,42,.08)}
+        #quickAddBtn{background:var(--brand)} #quickAddBtn:active{background:var(--brand-dark)}
+        #importDataBtn{background:#475569} #runAnalysisBtn{background:var(--success)} #saveClueBtn{background:#334155}
+        #clearClueSelectionsBtn{margin-top:12px;background:#f1f5f9;color:#475569;border:1px solid #dbe3ef;border-radius:9px;padding:7px 10px;text-decoration:none!important}
+        #clueContainer,#manualClueZodiacContainer{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px!important}
+        #clueContainer button,#manualClueZodiacContainer button{min-height:44px;border:1.5px solid #d6deea;border-radius:11px;background:#f8fafc;color:#334155;font-weight:700;padding:8px 4px;transition:.15s}
+        #clueContainer button.bg-indigo-600,#manualClueZodiacContainer button.bg-indigo-600{background:var(--brand)!important;color:#fff!important;border-color:var(--brand)!important;box-shadow:0 4px 10px rgba(79,70,229,.2);transform:none!important}
+        #historyListContainer{display:flex;flex-direction:column;gap:8px;max-height:310px;overflow:auto}
+        #historyListContainer>div:not(.text-slate-400){display:grid!important;grid-template-columns:1.15fr .8fr .8fr auto!important;gap:8px!important;align-items:center;padding:11px 10px!important;border:1px solid #e2e8f0!important;border-radius:11px!important;background:#f8fafc!important;font-size:13px!important}
+        #historyListContainer button{background:transparent;padding:4px 6px;font-size:12px;font-weight:700}
+        #historyListContainer .text-indigo-600{color:#4f46e5!important} #historyListContainer .text-rose-500{color:#e11d48!important}
+        #clue-analysis-section>.bg-slate-50{background:#f8fafc!important;border:1px solid #e2e8f0!important;border-radius:13px!important;padding:15px!important}
+        #clueImagePreviewContainer{max-width:220px;border-radius:12px;overflow:hidden;border:1px solid #dbe3ef;background:#f1f5f9}
+        #clueImagePreview{display:block;width:100%;height:auto}
+        #clueRemoveImageBtn{position:absolute!important;top:6px;right:6px;background:#e11d48!important;color:#fff!important;border-radius:50%!important;width:30px;height:30px;padding:5px!important;display:grid;place-items:center}
+        #manualClueStrength{width:100%;accent-color:var(--brand)}
+        #clueListContainer{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto}
+        #analysisResults{min-height:100px}
+        #analysisResults>.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+        #analysisResults>.grid>div{padding:15px;border-radius:13px;border:1px solid #e2e8f0;background:#f8fafc}
+        #analysisResults span{display:inline-block;border-radius:9px;padding:7px 11px;margin:3px 4px 3px 0;font-weight:800;font-size:14px}
+        #analysisResults .bg-indigo-600{background:#4f46e5!important;color:#fff!important}
+        #analysisResults .bg-rose-500{background:#f43f5e!important;color:#fff!important}
+        #v34-pattern-signals-container{margin-top:16px;border:1px solid #dbe3ef;border-radius:14px;overflow:hidden;background:#fff}
+        #v34-pattern-signals-container.hidden{display:none!important}
+        #v34-pattern-signals-container .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+        #v34-pattern-signals-container .flex{display:flex}.flex{display:flex}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.flex-1{flex:1}.items-center{align-items:center}.items-start{align-items:flex-start}.justify-between{justify-content:space-between}
+        .grid{display:grid}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.space-y-2>*+*{margin-top:8px}.space-y-4>*+*{margin-top:16px}
+        .w-full{width:100%}.w-auto{width:auto}.relative{position:relative}.absolute{position:absolute}.hidden{display:none!important}.block{display:block}.text-center{text-align:center}.font-bold{font-weight:800}.font-semibold{font-weight:700}.font-medium{font-weight:600}.font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+        .text-xs{font-size:12px}.text-sm{font-size:14px}.text-base{font-size:16px}.text-lg{font-size:19px}.text-xl{font-size:21px}.text-\[10px\]{font-size:10px}.text-\[11px\]{font-size:11px}
+        .text-white{color:#fff!important}.text-slate-400{color:#94a3b8!important}.text-slate-500{color:#64748b!important}.text-slate-600{color:#475569!important}.text-slate-700{color:#334155!important}.text-slate-800{color:#1e293b!important}.text-indigo-500{color:#6366f1!important}.text-indigo-600{color:#4f46e5!important}.text-indigo-700{color:#4338ca!important}.text-indigo-800{color:#3730a3!important}.text-rose-500{color:#f43f5e!important}.text-rose-600{color:#e11d48!important}.text-rose-700{color:#be123c!important}.text-amber-700{color:#b45309!important}.text-amber-800{color:#92400e!important}.text-emerald-600{color:#059669!important}
+        .bg-white{background:#fff!important}.bg-slate-50,.bg-slate-50\/80{background:#f8fafc!important}.bg-slate-100{background:#f1f5f9!important}.bg-slate-200{background:#e2e8f0!important}.bg-slate-700{background:#334155!important}.bg-slate-800{background:#1e293b!important}.bg-indigo-50,.bg-indigo-50\/50{background:#eef2ff!important}.bg-indigo-500{background:#6366f1!important}.bg-indigo-600{background:#4f46e5!important}.bg-indigo-700{background:#4338ca!important}.bg-indigo-800{background:#3730a3!important}.bg-rose-50,.bg-rose-50\/50{background:#fff1f2!important}.bg-rose-500{background:#f43f5e!important}.bg-amber-50\/50,.bg-amber-50\/80{background:#fffbeb!important}.bg-emerald-600{background:#059669!important}
+        .border{border:1px solid #dbe3ef}.border-b{border-bottom:1px solid #e2e8f0}.border-t{border-top:1px solid #e2e8f0}.border-dashed{border-style:dashed}.rounded{border-radius:7px}.rounded-md{border-radius:9px}.rounded-lg{border-radius:12px}.rounded-xl{border-radius:16px}.rounded-full{border-radius:999px}.shadow-sm{box-shadow:0 2px 8px rgba(15,23,42,.05)}.shadow-md{box-shadow:0 4px 14px rgba(15,23,42,.1)}.shadow-lg{box-shadow:0 8px 22px rgba(15,23,42,.14)}
+        .p-1{padding:4px}.p-2{padding:8px}.p-2\.5{padding:10px}.p-3{padding:12px}.p-4{padding:16px}.px-2{padding-left:8px;padding-right:8px}.px-3{padding-left:12px;padding-right:12px}.px-4{padding-left:16px;padding-right:16px}.px-5{padding-left:20px;padding-right:20px}.px-6{padding-left:24px;padding-right:24px}.py-1{padding-top:4px;padding-bottom:4px}.py-1\.5{padding-top:6px;padding-bottom:6px}.py-2{padding-top:8px;padding-bottom:8px}.py-2\.5{padding-top:10px;padding-bottom:10px}.py-3{padding-top:12px;padding-bottom:12px}.py-4{padding-top:16px;padding-bottom:16px}.py-8{padding-top:32px;padding-bottom:32px}
+        .mt-1{margin-top:4px}.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}.mb-1{margin-bottom:4px}.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mb-6{margin-bottom:24px}.mr-1{margin-right:4px}.mr-2{margin-right:8px}.pl-2{padding-left:8px}.pr-6{padding-right:24px}.pt-2{padding-top:8px}.pt-4{padding-top:16px}.pb-1{padding-bottom:4px}.pb-2{padding-bottom:8px}.pb-4{padding-bottom:16px}
+        .toast-enter{opacity:0;transform:translateY(12px)}.toast-enter-active{opacity:1;transform:translateY(0);transition:.25s}.toast-exit-active{opacity:0;transition:.25s}
+        #toastContainer{position:fixed;left:12px;right:12px;bottom:18px;z-index:99;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+        #toastContainer>div{max-width:560px;width:auto;pointer-events:auto;border-radius:11px;padding:10px 14px;color:#fff;box-shadow:0 8px 24px rgba(15,23,42,.18)}
+        ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:6px}
+        @media(max-width:640px){
+            html,body{font-size:15px} header>div{padding:13px 14px} header h1{font-size:18px} header span{font-size:10px}
+            main{padding:12px 10px 28px} section{padding:15px;border-radius:15px} section h2{font-size:18px}
+            #clueContainer,#manualClueZodiacContainer{grid-template-columns:repeat(4,minmax(0,1fr))}
+            #analysisResults>.grid{grid-template-columns:1fr}
+            #v34-pattern-signals-container .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+            .md\:flex-row{flex-direction:column!important}.md\:items-center{align-items:stretch!important}.md\:w-auto{width:100%!important}.md\:grid-cols-2{grid-template-columns:1fr!important}.sm\:grid-cols-3{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+            #historyListContainer>div:not(.text-slate-400){grid-template-columns:1fr .7fr .7fr auto!important;font-size:12px!important}
+        }
+
+        /* ===== 历史数据录入：参考图二重做 ===== */
+        #historyEntrySection{padding:0;overflow:hidden;border-radius:22px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 5px 20px rgba(15,23,42,.06)}
+        #historyEntrySection .history-entry-top{padding:20px 20px 16px}
+        #historyEntrySection .history-entry-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+        #historyEntrySection .history-entry-title{display:flex;align-items:center;gap:9px;margin:0;font-size:20px;font-weight:900;color:#172033;letter-spacing:.01em}
+        #historyEntrySection .history-entry-title .plus{font-size:28px;line-height:1;color:#6366f1;font-weight:900;margin-top:-2px}
+        #batchToggleBtn{flex:0 0 auto;border:1px solid #dce3f6;background:#f2f4ff;color:#5b5bd6;border-radius:10px;padding:10px 14px;font-weight:700;font-size:14px;box-shadow:0 2px 5px rgba(99,102,241,.06)}
+        #historyEntrySection .latest-entry-grid{display:grid;grid-template-columns:1.05fr 2.15fr .95fr;gap:12px;align-items:stretch}
+        #historyEntrySection .next-period-card{background:linear-gradient(145deg,#f2f4ff,#eef1ff);border:1px solid #dbe2fb;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:72px;padding:8px;color:#6157d9}
+        #historyEntrySection .next-period-card small{font-size:12px;line-height:1.1;margin-bottom:3px;color:#7c78d7}
+        #historyEntrySection .next-period-card strong{font-size:24px;line-height:1.1;font-weight:900;color:#4438ca;white-space:nowrap}
+        #quickNumberInput{min-height:72px!important;border-radius:18px!important;background:#fbfbfc!important;border:1.5px solid #e5e7eb!important;text-align:center;font-size:20px!important;font-weight:800;color:#172033!important;padding:10px!important;box-shadow:inset 0 2px 8px rgba(15,23,42,.025)}
+        #quickNumberInput::placeholder{font-size:17px;font-weight:700;color:#aab0bc}
+        #quickAddBtn{min-height:72px!important;border-radius:18px!important;background:#111827!important;font-size:18px!important;box-shadow:0 5px 12px rgba(15,23,42,.15)!important;padding:10px!important}
+        #quickAddBtn:active{transform:translateY(1px);background:#0b1220!important}
+        #batchImportPanel{margin-top:14px;border-top:1px solid #edf0f4;padding-top:14px}
+        #batchImportPanel[hidden]{display:none!important}
+        #batchImportPanel .batch-year-row{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;color:#64748b}
+        #batchImportPanel textarea{min-height:112px;border-radius:14px}
+        #batchImportPanel #importDataBtn{margin-top:10px;border-radius:12px;background:#475569!important}
+        #historyEntrySection .history-list-wrap{border-top:14px solid #f4f6f8;padding:18px 20px 10px}
+        #historyEntrySection .history-list-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid #e5e7eb}
+        #historyEntrySection .history-list-head h3{font-size:20px;font-weight:900;color:#172033}
+        #historyCountBadge{background:#f3f4f6;color:#737987;border-radius:999px;padding:7px 12px;font-size:13px;white-space:nowrap}
+        #historyListContainer{max-height:430px!important;overflow-y:auto!important;display:block!important}
+        #historyListContainer .history-row{display:grid!important;grid-template-columns:54px 52px 44px 1fr auto auto!important;gap:10px!important;align-items:center!important;min-height:78px;padding:13px 2px!important;border:0!important;border-bottom:1px solid #eef0f3!important;border-radius:0!important;background:#fff!important;font-size:14px!important}
+        #historyListContainer .history-period{font-size:16px;font-weight:800;color:#9aa1ad;text-align:center}
+        #historyListContainer .number-ball{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:20px;font-weight:900;border:2px solid rgba(255,255,255,.72);box-shadow:0 2px 7px rgba(15,23,42,.18), inset 0 0 0 1px rgba(255,255,255,.28)}
+        #historyListContainer .number-ball.red{background:linear-gradient(145deg,#fb4b51,#e5252d)}
+        #historyListContainer .number-ball.blue{background:linear-gradient(145deg,#4e8df8,#2867e4)}
+        #historyListContainer .number-ball.green{background:linear-gradient(145deg,#45b96c,#23994c)}
+        #historyListContainer .history-zodiac{font-size:18px;font-weight:900;color:#313b4d;text-align:center}
+        #historyListContainer .latest-badge{justify-self:start;color:#5b5bd6;background:#f2f4ff;border:1px solid #dce3ff;border-radius:8px;padding:7px 9px;font-weight:800;font-size:13px;box-shadow:0 2px 5px rgba(99,102,241,.05)}
+        #historyListContainer .latest-placeholder{min-width:46px}
+        #historyListContainer .history-action{border:1px solid #e1e4e8;background:#fff;border-radius:8px;padding:8px 11px;font-size:13px;font-weight:700;color:#565f6d;box-shadow:0 2px 5px rgba(15,23,42,.05)}
+        #historyListContainer .history-review{border:1px solid #f7d9da;background:#fff8f8;color:#df4d52;border-radius:8px;padding:8px 10px;font-size:13px;font-weight:800;box-shadow:0 2px 5px rgba(225,29,72,.04);white-space:nowrap}
+        #historyListContainer .history-review .arrow{font-size:18px;margin-right:3px;vertical-align:-1px}
+        #historyListContainer .empty-history{padding:34px 0;text-align:center;color:#a0a7b2;font-size:13px}
+        @media(max-width:560px){
+            #historyEntrySection .history-entry-top{padding:17px 16px 14px}
+            #historyEntrySection .history-entry-title{font-size:18px}
+            #batchToggleBtn{padding:9px 10px;font-size:13px}
+            #historyEntrySection .latest-entry-grid{grid-template-columns:1fr 2.05fr .92fr;gap:9px}
+            #historyEntrySection .next-period-card,#quickNumberInput,#quickAddBtn{min-height:66px!important}
+            #historyEntrySection .next-period-card strong{font-size:21px}
+            #quickNumberInput{font-size:18px!important}
+            #quickNumberInput::placeholder{font-size:15px}
+            #quickAddBtn{font-size:16px!important}
+            #historyEntrySection .history-list-wrap{padding:16px 14px 8px}
+            #historyListContainer .history-row{grid-template-columns:44px 46px 34px 1fr auto auto!important;gap:7px!important;min-height:72px}
+            #historyListContainer .history-period{font-size:15px}
+            #historyListContainer .number-ball{width:43px;height:43px;font-size:18px}
+            #historyListContainer .history-zodiac{font-size:16px}
+            #historyListContainer .latest-badge{font-size:12px;padding:6px 7px}
+            #historyListContainer .history-action,#historyListContainer .history-review{font-size:12px;padding:7px 8px}
+        }
+        @media(max-width:380px){
+            #historyEntrySection .history-entry-head{align-items:flex-start}
+            #historyEntrySection .latest-entry-grid{grid-template-columns:.95fr 1.65fr .8fr;gap:7px}
+            #historyListContainer .history-row{grid-template-columns:38px 42px 30px 1fr auto!important;gap:6px!important}
+            #historyListContainer .history-review{grid-column:4/6;justify-self:end;margin-top:-3px}
+            #historyListContainer .latest-badge{font-size:11px;padding:5px 6px}
+        }
+
+        /* iPhone 17 Pro / 390-430px compact layout */
+        @media(max-width:430px){
+            html,body{font-size:14px}
+            header>div{padding:11px 12px}
+            header h1{font-size:17px;letter-spacing:0}
+            header span{font-size:10px;padding:4px 7px}
+            main{padding:10px 8px 22px}
+            main>.max-w-4xl{gap:10px}
+            section{border-radius:14px;padding:12px;box-shadow:0 2px 8px rgba(15,23,42,.045)}
+            section h2{font-size:16px;margin-bottom:10px;gap:6px}
+            svg{width:18px!important;height:18px!important;flex-basis:18px}
+
+            /* History entry: fit one complete row on iPhone 17 Pro */
+            #historyEntrySection{border-radius:15px}
+            #historyEntrySection .history-entry-top{padding:12px 12px 10px}
+            #historyEntrySection .history-entry-head{margin-bottom:10px;gap:8px;align-items:center}
+            #historyEntrySection .history-entry-title{font-size:17px;gap:5px;white-space:nowrap}
+            #historyEntrySection .history-entry-title .plus{font-size:22px}
+            #batchToggleBtn{font-size:11px!important;padding:7px 8px!important;border-radius:8px!important;white-space:nowrap}
+            #historyEntrySection .latest-entry-grid{grid-template-columns:76px minmax(0,1fr) 68px;gap:7px}
+            #historyEntrySection .next-period-card{min-height:56px!important;border-radius:12px;padding:5px 4px}
+            #historyEntrySection .next-period-card small{font-size:10px;margin-bottom:2px}
+            #historyEntrySection .next-period-card strong{font-size:18px}
+            #quickNumberInput{min-width:0!important;min-height:56px!important;height:56px!important;border-radius:12px!important;padding:8px!important;font-size:16px!important;text-align:center}
+            #quickNumberInput::placeholder{font-size:13px}
+            #quickAddBtn{min-height:56px!important;height:56px!important;border-radius:12px!important;padding:6px!important;font-size:14px!important;white-space:nowrap}
+            #batchImportPanel{margin-top:10px!important;padding-top:10px!important}
+            #batchImportPanel textarea{min-height:72px!important;padding:9px!important;font-size:13px!important}
+            #importDataBtn{min-height:40px!important;padding:9px 12px!important;font-size:13px!important}
+
+            /* History list: less blank space, denser rows */
+            #historyEntrySection .history-list-wrap{border-top-width:8px;padding:11px 12px 6px}
+            #historyEntrySection .history-list-head{padding-bottom:9px}
+            #historyEntrySection .history-list-head h3{font-size:17px}
+            #historyCountBadge{font-size:11px;padding:5px 9px}
+            #historyListContainer{max-height:330px!important}
+            #historyListContainer .empty-history{padding:18px 0;font-size:12px}
+            #historyListContainer .history-row{grid-template-columns:38px 40px 28px minmax(0,1fr) auto!important;gap:5px!important;min-height:58px;padding:8px 0!important}
+            #historyListContainer .history-period{font-size:13px}
+            #historyListContainer .number-ball{width:38px;height:38px;font-size:16px}
+            #historyListContainer .history-zodiac{font-size:14px}
+            #historyListContainer .latest-badge{font-size:10px;padding:4px 5px}
+            #historyListContainer .history-action{font-size:11px;padding:6px 7px}
+            #historyListContainer .history-review{grid-column:4/6;justify-self:end;margin-top:-2px;font-size:11px;padding:5px 7px}
+            #historyListContainer .history-review .arrow{font-size:14px}
+
+            /* Other sections: reduce whitespace */
+            #clearClueSelectionsBtn{margin-top:8px;padding:6px 8px;font-size:11px}
+            #clueContainer,#manualClueZodiacContainer{grid-template-columns:repeat(6,minmax(0,1fr));gap:6px!important}
+            #clueContainer button,#manualClueZodiacContainer button{min-height:36px;border-radius:8px;padding:5px 2px;font-size:13px}
+            #clue-analysis-section .bg-slate-50{padding:10px!important}
+            #clue-analysis-section .mb-4{margin-bottom:10px!important}
+            #clue-analysis-section .pb-4{padding-bottom:10px!important}
+            #clue-analysis-section .gap-4{gap:8px!important}
+            #clue-analysis-section input,#clue-analysis-section textarea{min-height:38px;padding:8px 9px;font-size:13px}
+            #clue-analysis-section textarea{min-height:64px}
+            #saveClueBtn,#runAnalysisBtn{min-height:40px;padding:9px 12px;font-size:13px}
+            #analysisResults{min-height:74px!important}
+        }
+    
+        /* iPhone 文件预览运行态提示：JS 成功执行后会自动隐藏 */
+        #runtimeModeWarning{margin:10px 12px 0;padding:10px 12px;border-radius:10px;background:#fff7ed;border:1px solid #fdba74;color:#9a3412;font-size:12px;line-height:1.45;font-weight:700}
+        #runtimeModeWarning.runtime-ok{display:none!important}
+        #batchImportDetails{margin-top:12px;border-top:1px solid #edf0f4;padding-top:10px}
+        #batchImportDetails>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;border:1px solid #dce3f6;background:#f2f4ff;color:#5b5bd6;border-radius:9px;padding:8px 11px;font-weight:700;font-size:13px;user-select:none}
+        #batchImportDetails>summary::-webkit-details-marker{display:none}
+        #batchImportDetails[open]>summary{background:#e8ebff}
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col h-screen overflow-x-hidden">
+
+    <!-- 顶部导航条 -->
+    <header class="bg-indigo-700 text-white shadow-md p-4 sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold tracking-wide">V34 走势分析系统</h1>
+            <span class="bg-indigo-800 px-2 py-1 rounded text-xs font-mono border border-indigo-600">手机直白版</span>
+        </div>
+    </header>
+    <div id="runtimeModeWarning">⚠️ 如果你现在是在 iPhone“文件预览”里看到本页，系统可能只显示页面而不执行 JavaScript，因此“存入/批量导入/自动载入数据库”都会失效。JS 正常运行时这条提示会自动消失。</div>
+
+
+    <!-- 主体容器 -->
+    <main class="flex-1 overflow-y-auto p-3 md:p-6">
+        <div class="max-w-4xl mx-auto space-y-4 md:space-y-6">
+
+            <!-- 数据录入区：参考图二布局 -->
+            <section id="historyEntrySection">
+                <div class="history-entry-top">
+                    <div class="history-entry-head">
+                        <h2 class="history-entry-title"><span class="plus">＋</span>录入最新开奖</h2>
+                        <span class="batch-head-spacer"></span>
+                    </div>
+
+                    <div class="latest-entry-grid">
+                        <div class="next-period-card" id="nextPeriodCard" title="期数会根据当前年份历史记录自动递增">
+                            <small>即将录入</small>
+                            <strong><span id="nextPeriodText">231</span>期</strong>
+                            <input id="quickPeriodInput" type="hidden" value="231">
+                        </div>
+                        <input id="quickNumberInput" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="输入特码(1-49)">
+                        <button id="quickAddBtn" type="button" onclick="App.quickAddData()">存入</button>
+                    </div>
+
+                    <details id="batchImportDetails">
+                        <summary id="batchToggleBtn">切换批量导入</summary>
+                        <div id="batchImportPanel">
+                            <div class="batch-year-row">
+                                <label for="yearSelect">年份</label>
+                                <select id="yearSelect">
+                                    <option value="2026">2026</option>
+                                </select>
+                            </div>
+                            <textarea id="importDataInput" placeholder="支持：049期 13 / 049期<TAB>13 / 049,13\n每行一条，例如：\n231期 22\n232期 41"></textarea>
+                            <button id="importDataBtn" type="button" onclick="App.importData()">批量导入并追加</button>
+                        </div>
+                    </details>
+                </div>
+
+                <div class="history-list-wrap">
+                    <div class="history-list-head">
+                        <h3>往期走势列表</h3>
+                        <span id="historyCountBadge">共存 182 期</span>
+                    </div>
+                    <div id="historyListContainer">
+<div class="history-row"><span class="period-cell">230</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"> <span class="latest-tag">最新</span></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'230')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'230')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">229</span><span class="num-ball green">38</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'229')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'229')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">228</span><span class="num-ball red">23</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'228')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'228')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">227</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'227')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'227')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">226</span><span class="num-ball green">17</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'226')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'226')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">225</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'225')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'225')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">224</span><span class="num-ball blue">9</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'224')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'224')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">223</span><span class="num-ball red">23</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'223')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'223')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">222</span><span class="num-ball blue">26</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'222')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'222')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">221</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'221')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'221')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">220</span><span class="num-ball blue">48</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'220')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'220')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">219</span><span class="num-ball green">43</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'219')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'219')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">218</span><span class="num-ball green">17</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'218')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'218')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">217</span><span class="num-ball blue">26</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'217')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'217')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">216</span><span class="num-ball blue">37</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'216')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'216')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">215</span><span class="num-ball blue">14</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'215')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'215')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">214</span><span class="num-ball blue">4</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'214')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'214')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">213</span><span class="num-ball red">35</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'213')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'213')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">212</span><span class="num-ball green">6</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'212')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'212')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">211</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'211')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'211')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">210</span><span class="num-ball green">49</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'210')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'210')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">209</span><span class="num-ball red">8</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'209')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'209')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">208</span><span class="num-ball red">19</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'208')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'208')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">207</span><span class="num-ball blue">31</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'207')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'207')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">206</span><span class="num-ball blue">47</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'206')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'206')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">205</span><span class="num-ball blue">3</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'205')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'205')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">204</span><span class="num-ball green">5</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'204')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'204')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">203</span><span class="num-ball blue">25</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'203')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'203')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">202</span><span class="num-ball red">40</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'202')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'202')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">201</span><span class="num-ball green">32</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'201')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'201')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">200</span><span class="num-ball green">39</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'200')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'200')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">199</span><span class="num-ball blue">36</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'199')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'199')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">198</span><span class="num-ball red">7</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'198')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'198')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">197</span><span class="num-ball red">8</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'197')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'197')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">196</span><span class="num-ball green">39</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'196')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'196')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">195</span><span class="num-ball blue">25</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'195')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'195')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">194</span><span class="num-ball blue">26</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'194')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'194')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">193</span><span class="num-ball blue">9</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'193')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'193')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">192</span><span class="num-ball blue">25</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'192')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'192')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">191</span><span class="num-ball red">29</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'191')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'191')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">190</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'190')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'190')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">189</span><span class="num-ball blue">15</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'189')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'189')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">188</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'188')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'188')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">187</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'187')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'187')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">186</span><span class="num-ball red">23</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'186')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'186')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">185</span><span class="num-ball blue">36</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'185')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'185')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">184</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'184')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'184')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">183</span><span class="num-ball red">24</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'183')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'183')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">182</span><span class="num-ball blue">41</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'182')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'182')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">181</span><span class="num-ball red">19</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'181')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'181')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">180</span><span class="num-ball green">21</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'180')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'180')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">179</span><span class="num-ball blue">15</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'179')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'179')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">178</span><span class="num-ball red">18</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'178')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'178')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">177</span><span class="num-ball blue">14</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'177')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'177')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">176</span><span class="num-ball blue">10</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'176')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'176')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">175</span><span class="num-ball blue">26</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'175')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'175')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">174</span><span class="num-ball blue">41</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'174')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'174')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">173</span><span class="num-ball blue">26</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'173')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'173')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">172</span><span class="num-ball green">44</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'172')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'172')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">171</span><span class="num-ball green">28</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'171')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'171')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">170</span><span class="num-ball blue">3</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'170')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'170')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">169</span><span class="num-ball red">24</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'169')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'169')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">168</span><span class="num-ball blue">15</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'168')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'168')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">167</span><span class="num-ball red">19</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'167')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'167')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">166</span><span class="num-ball green">6</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'166')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'166')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">165</span><span class="num-ball blue">3</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'165')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'165')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">164</span><span class="num-ball green">21</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'164')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'164')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">163</span><span class="num-ball blue">37</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'163')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'163')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">162</span><span class="num-ball green">32</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'162')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'162')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">161</span><span class="num-ball red">8</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'161')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'161')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">160</span><span class="num-ball red">2</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'160')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'160')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">159</span><span class="num-ball green">39</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'159')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'159')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">158</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'158')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'158')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">157</span><span class="num-ball red">40</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'157')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'157')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">156</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'156')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'156')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">155</span><span class="num-ball red">7</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'155')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'155')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">154</span><span class="num-ball blue">41</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'154')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'154')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">153</span><span class="num-ball blue">41</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'153')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'153')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">152</span><span class="num-ball red">45</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'152')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'152')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">151</span><span class="num-ball blue">31</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'151')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'151')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">150</span><span class="num-ball blue">9</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'150')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'150')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">149</span><span class="num-ball green">27</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'149')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'149')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">148</span><span class="num-ball blue">48</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'148')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'148')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">147</span><span class="num-ball red">13</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'147')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'147')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">146</span><span class="num-ball blue">42</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'146')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'146')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">145</span><span class="num-ball green">5</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'145')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'145')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">144</span><span class="num-ball green">43</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'144')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'144')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">143</span><span class="num-ball green">44</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'143')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'143')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">142</span><span class="num-ball red">23</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'142')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'142')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">141</span><span class="num-ball green">33</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'141')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'141')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">140</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'140')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'140')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">139</span><span class="num-ball red">24</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'139')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'139')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">138</span><span class="num-ball green">49</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'138')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'138')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">137</span><span class="num-ball blue">26</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'137')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'137')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">136</span><span class="num-ball blue">48</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'136')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'136')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">135</span><span class="num-ball red">30</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'135')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'135')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">134</span><span class="num-ball blue">37</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'134')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'134')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">133</span><span class="num-ball red">7</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'133')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'133')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">132</span><span class="num-ball red">30</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'132')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'132')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">131</span><span class="num-ball red">7</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'131')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'131')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">130</span><span class="num-ball red">29</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'130')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'130')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">129</span><span class="num-ball blue">41</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'129')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'129')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">128</span><span class="num-ball blue">37</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'128')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'128')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">127</span><span class="num-ball red">45</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'127')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'127')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">126</span><span class="num-ball green">49</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'126')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'126')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">125</span><span class="num-ball blue">31</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'125')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'125')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">124</span><span class="num-ball green">39</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'124')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'124')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">123</span><span class="num-ball red">46</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'123')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'123')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">122</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'122')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'122')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">121</span><span class="num-ball green">44</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'121')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'121')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">120</span><span class="num-ball green">6</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'120')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'120')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">119</span><span class="num-ball green">11</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'119')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'119')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">118</span><span class="num-ball red">8</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'118')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'118')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">117</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'117')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'117')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">116</span><span class="num-ball green">22</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'116')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'116')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">115</span><span class="num-ball blue">4</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'115')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'115')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">114</span><span class="num-ball red">30</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'114')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'114')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">113</span><span class="num-ball red">2</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'113')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'113')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">112</span><span class="num-ball blue">9</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'112')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'112')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">111</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'111')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'111')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">110</span><span class="num-ball red">30</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'110')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'110')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">109</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'109')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'109')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">108</span><span class="num-ball red">45</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'108')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'108')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">107</span><span class="num-ball green">49</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'107')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'107')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">106</span><span class="num-ball green">22</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'106')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'106')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">105</span><span class="num-ball green">28</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'105')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'105')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">104</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'104')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'104')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">103</span><span class="num-ball green">6</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'103')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'103')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">102</span><span class="num-ball blue">20</span><span class="zodiac-cell">猪</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'102')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'102')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">101</span><span class="num-ball green">39</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'101')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'101')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">100</span><span class="num-ball green">33</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'100')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'100')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">099</span><span class="num-ball red">12</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'099')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'099')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">098</span><span class="num-ball green">17</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'098')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'098')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">097</span><span class="num-ball green">11</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'097')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'097')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">096</span><span class="num-ball green">43</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'096')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'096')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">095</span><span class="num-ball red">35</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'095')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'095')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">094</span><span class="num-ball green">17</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'094')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'094')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">093</span><span class="num-ball red">40</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'093')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'093')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">092</span><span class="num-ball green">6</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'092')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'092')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">091</span><span class="num-ball blue">37</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'091')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'091')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">090</span><span class="num-ball blue">36</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'090')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'090')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">089</span><span class="num-ball green">49</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'089')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'089')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">088</span><span class="num-ball green">27</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'088')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'088')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">087</span><span class="num-ball blue">26</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'087')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'087')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">086</span><span class="num-ball red">12</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'086')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'086')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">085</span><span class="num-ball red">19</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'085')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'085')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">084</span><span class="num-ball green">16</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'084')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'084')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">083</span><span class="num-ball green">5</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'083')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'083')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">082</span><span class="num-ball green">27</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'082')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'082')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">081</span><span class="num-ball green">17</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'081')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'081')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">080</span><span class="num-ball blue">3</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'080')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'080')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">079</span><span class="num-ball red">35</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'079')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'079')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">078</span><span class="num-ball red">46</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'078')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'078')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">077</span><span class="num-ball red">29</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'077')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'077')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">076</span><span class="num-ball red">2</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'076')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'076')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">075</span><span class="num-ball green">33</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'075')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'075')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">074</span><span class="num-ball blue">10</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'074')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'074')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">073</span><span class="num-ball red">34</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'073')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'073')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">072</span><span class="num-ball red">46</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'072')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'072')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">071</span><span class="num-ball blue">48</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'071')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'071')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">070</span><span class="num-ball blue">25</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'070')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'070')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">069</span><span class="num-ball red">24</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'069')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'069')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">068</span><span class="num-ball red">23</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'068')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'068')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">067</span><span class="num-ball green">5</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'067')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'067')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">066</span><span class="num-ball blue">37</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'066')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'066')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">065</span><span class="num-ball green">5</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'065')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'065')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">064</span><span class="num-ball red">18</span><span class="zodiac-cell">牛</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'064')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'064')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">063</span><span class="num-ball green">28</span><span class="zodiac-cell">兔</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'063')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'063')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">062</span><span class="num-ball red">24</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'062')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'062')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">061</span><span class="num-ball red">29</span><span class="zodiac-cell">虎</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'061')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'061')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">060</span><span class="num-ball blue">9</span><span class="zodiac-cell">狗</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'060')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'060')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">059</span><span class="num-ball blue">10</span><span class="zodiac-cell">鸡</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'059')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'059')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">058</span><span class="num-ball blue">31</span><span class="zodiac-cell">鼠</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'058')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'058')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">057</span><span class="num-ball red">23</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'057')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'057')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">056</span><span class="num-ball blue">48</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'056')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'056')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">055</span><span class="num-ball blue">14</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'055')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'055')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">054</span><span class="num-ball blue">48</span><span class="zodiac-cell">羊</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'054')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'054')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">053</span><span class="num-ball blue">15</span><span class="zodiac-cell">龙</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'053')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'053')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">052</span><span class="num-ball green">38</span><span class="zodiac-cell">蛇</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'052')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'052')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">051</span><span class="num-ball red">1</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'051')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'051')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">050</span><span class="num-ball red">23</span><span class="zodiac-cell">猴</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'050')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'050')">↶ 复盘</button></div>
+<div class="history-row"><span class="period-cell">049</span><span class="num-ball red">13</span><span class="zodiac-cell">马</span><span class="row-grow"></span><button class="mini-edit" type="button" onclick="App.editHistoryRecord(2026,'049')">修改</button><button class="mini-review" type="button" onclick="App.reviewHistoryRecord(2026,'049')">↶ 复盘</button></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 线索微调区 -->
+            <section class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-3 text-slate-700 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                    人工辅助线索
+                </h2>
+                <div class="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-md p-2.5 mb-3">仅在你有额外人工线索时选择对应生肖。每选中 1 个生肖，该生肖在原综合评分中 +10；不确定时请全部不选。选择后会自动重新分析。</div>
+                <div id="clueContainer" class="flex flex-wrap gap-2"></div>
+                <button id="clearClueSelectionsBtn" class="mt-3 text-xs text-slate-500 underline">清除全部微调</button>
+            </section>
+
+            <!-- 图文辅助线索解析区 -->
+            <section id="clue-analysis-section" class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-lg font-bold mb-4 text-slate-700 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    图文/文字辅助线索
+                </h2>
+                
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+                    <div class="mb-4 pb-4 border-b border-slate-200">
+                        <div class="text-xs font-bold text-slate-700 mb-1">免费替代模式：人工结构化辅助</div>
+                        <div class="text-xs text-slate-500 leading-relaxed">不再调用付费 API。你可以先自行阅读图片/文字，再在下方选择线索生肖与强度；系统只负责记录，不会自动猜图。</div>
+                    </div>
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <div class="flex-1 min-w-[120px]">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">目标年份</label>
+                            <input type="number" id="clueTargetYear" class="w-full border border-slate-300 p-2 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none" value="2026">
+                        </div>
+                        <div class="flex-1 min-w-[120px]">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">目标期数</label>
+                            <input type="text" id="clueTargetPeriod" class="w-full border border-slate-300 p-2 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="例如: 127">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">文字线索 (诗句/谜语/观察)</label>
+                        <textarea id="clueTextInput" class="w-full border border-slate-300 p-2 h-20 rounded-md text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none" placeholder="输入相关文字线索..."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">图片线索 (本地预览，阅后即焚)</label>
+                        <input type="file" id="clueImageInput" accept="image/jpeg, image/png, image/webp" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-2"/>
+                        <div id="clueImagePreviewContainer" class="hidden relative w-full max-w-[200px] mt-2 border border-slate-200 rounded-md overflow-hidden bg-slate-100">
+                            <img id="clueImagePreview" src="" alt="预览" class="w-full h-auto object-contain">
+                            <button id="clueRemoveImageBtn" class="absolute top-1 right-1 bg-rose-500 text-white rounded-full p-1 hover:bg-rose-600 focus:outline-none shadow-sm">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-600 mb-2">人工判断生肖（可多选）</label>
+                        <div id="manualClueZodiacContainer" class="flex flex-wrap gap-2"></div>
+                        <label class="block text-xs font-bold text-slate-600 mt-3 mb-1">线索强度：<span id="manualClueStrengthValue">50</span>/100</label>
+                        <input id="manualClueStrength" type="range" min="0" max="100" value="50" class="w-full">
+                    </div>
+                    <button id="saveClueBtn" class="w-full bg-slate-800 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-slate-700 transition-colors shadow-sm text-sm">记录辅助线索</button>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-slate-700 mb-2 border-b border-slate-200 pb-1">历史图文记录</h3>
+                    <div id="clueListContainer" class="space-y-2 max-h-60 overflow-y-auto">
+                        <!-- 动态渲染线索列表 -->
+                        <div class="text-slate-400 text-center py-4 text-xs">暂无图文线索记录。</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 分析结果区 -->
+            <section class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-700 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            综合分析结果
+                        </h2>
+                        <div id="historyStats" class="text-xs md:text-sm text-slate-500 mt-1">当前已录入 182 期历史数据</div>
+                    </div>
+                    <button id="runAnalysisBtn" class="w-full md:w-auto bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition-colors shadow-md text-sm">执行全盘分析</button>
+                </div>
+                
+                <!-- 核心 Analytics 结果 -->
+                <div id="analysisResults" class="min-h-[100px] transition-all">
+                    <div class="text-slate-400 text-center py-8 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-300">暂无分析结果，请录入数据并执行分析。</div>
+                </div>
+
+                <!-- 走势偏离信号容器 -->
+                <div id="v34-pattern-signals-container" class="mt-6 bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden hidden">
+                    <!-- JS动态填充 -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <script>
+        /**
+         * ==========================================
+         * V34 ALL-IN-ONE MODULE SYSTEM
+         * ==========================================
+         */
+
+        // --- 1. CONFIG MODULE ---
+        const ZodiacConfig = {
+            ALL_ZODIACS: ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']
+        };
+
+        const NumberZodiacMapper = {
+            2026: {
+                7:'鼠', 19:'鼠', 31:'鼠', 43:'鼠',
+                6:'牛', 18:'牛', 30:'牛', 42:'牛',
+                5:'虎', 17:'虎', 29:'虎', 41:'虎',
+                4:'兔', 16:'兔', 28:'兔', 40:'兔',
+                3:'龙', 15:'龙', 27:'龙', 39:'龙',
+                2:'蛇', 14:'蛇', 26:'蛇', 38:'蛇',
+                1:'马', 13:'马', 25:'马', 37:'马', 49:'马',
+                12:'羊', 24:'羊', 36:'羊', 48:'羊',
+                11:'猴', 23:'猴', 35:'猴', 47:'猴',
+                10:'鸡', 22:'鸡', 34:'鸡', 46:'鸡',
+                9:'狗', 21:'狗', 33:'狗', 45:'狗',
+                8:'猪', 20:'猪', 32:'猪', 44:'猪'
+            }
+        };
+
+
+        // --- 1.1 用户指定的 2026 历史开奖基线（049期-230期，共182期） ---
+        // 首次打开本版本时自动写入 localStorage。后续手工修改不会被重复覆盖。
+        const BUILTIN_HISTORY_2026 = [
+            ['049',13],
+            ['050',23],
+            ['051',1],
+            ['052',38],
+            ['053',15],
+            ['054',48],
+            ['055',14],
+            ['056',48],
+            ['057',23],
+            ['058',31],
+            ['059',10],
+            ['060',9],
+            ['061',29],
+            ['062',24],
+            ['063',28],
+            ['064',18],
+            ['065',5],
+            ['066',37],
+            ['067',5],
+            ['068',23],
+            ['069',24],
+            ['070',25],
+            ['071',48],
+            ['072',46],
+            ['073',34],
+            ['074',10],
+            ['075',33],
+            ['076',2],
+            ['077',29],
+            ['078',46],
+            ['079',35],
+            ['080',3],
+            ['081',17],
+            ['082',27],
+            ['083',5],
+            ['084',16],
+            ['085',19],
+            ['086',12],
+            ['087',26],
+            ['088',27],
+            ['089',49],
+            ['090',36],
+            ['091',37],
+            ['092',6],
+            ['093',40],
+            ['094',17],
+            ['095',35],
+            ['096',43],
+            ['097',11],
+            ['098',17],
+            ['099',12],
+            ['100',33],
+            ['101',39],
+            ['102',20],
+            ['103',6],
+            ['104',1],
+            ['105',28],
+            ['106',22],
+            ['107',49],
+            ['108',45],
+            ['109',16],
+            ['110',30],
+            ['111',1],
+            ['112',9],
+            ['113',2],
+            ['114',30],
+            ['115',4],
+            ['116',22],
+            ['117',16],
+            ['118',8],
+            ['119',11],
+            ['120',6],
+            ['121',44],
+            ['122',1],
+            ['123',46],
+            ['124',39],
+            ['125',31],
+            ['126',49],
+            ['127',45],
+            ['128',37],
+            ['129',41],
+            ['130',29],
+            ['131',7],
+            ['132',30],
+            ['133',7],
+            ['134',37],
+            ['135',30],
+            ['136',48],
+            ['137',26],
+            ['138',49],
+            ['139',24],
+            ['140',16],
+            ['141',33],
+            ['142',23],
+            ['143',44],
+            ['144',43],
+            ['145',5],
+            ['146',42],
+            ['147',13],
+            ['148',48],
+            ['149',27],
+            ['150',9],
+            ['151',31],
+            ['152',45],
+            ['153',41],
+            ['154',41],
+            ['155',7],
+            ['156',1],
+            ['157',40],
+            ['158',16],
+            ['159',39],
+            ['160',2],
+            ['161',8],
+            ['162',32],
+            ['163',37],
+            ['164',21],
+            ['165',3],
+            ['166',6],
+            ['167',19],
+            ['168',15],
+            ['169',24],
+            ['170',3],
+            ['171',28],
+            ['172',44],
+            ['173',26],
+            ['174',41],
+            ['175',26],
+            ['176',10],
+            ['177',14],
+            ['178',18],
+            ['179',15],
+            ['180',21],
+            ['181',19],
+            ['182',41],
+            ['183',24],
+            ['184',1],
+            ['185',36],
+            ['186',23],
+            ['187',1],
+            ['188',16],
+            ['189',15],
+            ['190',16],
+            ['191',29],
+            ['192',25],
+            ['193',9],
+            ['194',26],
+            ['195',25],
+            ['196',39],
+            ['197',8],
+            ['198',7],
+            ['199',36],
+            ['200',39],
+            ['201',32],
+            ['202',40],
+            ['203',25],
+            ['204',5],
+            ['205',3],
+            ['206',47],
+            ['207',31],
+            ['208',19],
+            ['209',8],
+            ['210',49],
+            ['211',1],
+            ['212',6],
+            ['213',35],
+            ['214',4],
+            ['215',14],
+            ['216',37],
+            ['217',26],
+            ['218',17],
+            ['219',43],
+            ['220',48],
+            ['221',1],
+            ['222',26],
+            ['223',23],
+            ['224',9],
+            ['225',1],
+            ['226',17],
+            ['227',16],
+            ['228',23],
+            ['229',38],
+            ['230',16]
+        ];
+        const BUILTIN_HISTORY_SEED_KEY = 'v34_builtin_history_2026_049_230_v1';
+
+        // --- 2. STORAGE ENGINE (History - Track A) ---
+        const StorageEngine = {
+            KEY: 'v34_history_data',
+            save: function(data) {
+                try {
+                    localStorage.setItem(this.KEY, JSON.stringify(data));
+                    return true;
+                } catch(e) { console.error('Storage Save Error:', e); return false; }
+            },
+            load: function() {
+                try {
+                    const raw = localStorage.getItem(this.KEY);
+                    return raw ? JSON.parse(raw) : [];
+                } catch(e) { console.error('Storage Load Error:', e); return []; }
+            },
+            clear: function() {
+                localStorage.removeItem(this.KEY);
+            }
+        };
+
+        // --- 2.1 CLUE STORAGE ENGINE (Track B) ---
+        const ClueStorageEngine = {
+            KEY: 'v34_clue_data',
+            save: function(data) {
+                try {
+                    localStorage.setItem(this.KEY, JSON.stringify(data));
+                    return true;
+                } catch(e) { console.error('ClueStorage Save Error:', e); return false; }
+            },
+            load: function() {
+                try {
+                    const raw = localStorage.getItem(this.KEY);
+                    return raw ? JSON.parse(raw) : [];
+                } catch(e) { console.error('ClueStorage Load Error:', e); return []; }
+            },
+            delete: function(id) {
+                let data = this.load();
+                data = data.filter(item => item.id !== id);
+                this.save(data);
+                return data;
+            }
+        };
+
+        // --- 2.2 AI RESPONSE SCHEMA VALIDATOR (Track B) ---
+        const AISchemaValidator = {
+            validate: function(jsonString) {
+                try {
+                    const data = JSON.parse(jsonString);
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                        return { valid: false, error: 'Response is not a JSON object' };
+                    }
+                    
+                    const allowedTopKeys = ['status', 'candidates'];
+                    const dataKeys = Object.keys(data);
+                    for (let key of dataKeys) {
+                        if (!allowedTopKeys.includes(key)) {
+                            return { valid: false, error: `Unknown top-level field: ${key}` };
+                        }
+                    }
+
+                    if (data.status === 'FAILED_NO_CLUE') {
+                        if ('candidates' in data) {
+                            return { valid: false, error: 'FAILED_NO_CLUE must not contain candidates field' };
+                        }
+                        return { valid: true, data: { status: 'FAILED_NO_CLUE', candidates: [] } };
+                    }
+                    
+                    if (data.status === 'SUCCESS') {
+                        if (!Array.isArray(data.candidates) || data.candidates.length < 1 || data.candidates.length > 12) {
+                            return { valid: false, error: 'Candidates must be an array of length 1-12' };
+                        }
+                        
+                        const seenZodiacs = new Set();
+                        const allowedCandidateKeys = ['zodiac', 'semanticStrength', 'reason'];
+
+                        for (let i = 0; i < data.candidates.length; i++) {
+                            const c = data.candidates[i];
+                            if (!c || typeof c !== 'object' || Array.isArray(c)) {
+                                return { valid: false, error: `Candidate at index ${i} is not an object` };
+                            }
+
+                            const cKeys = Object.keys(c);
+                            for (let key of cKeys) {
+                                if (!allowedCandidateKeys.includes(key)) {
+                                    return { valid: false, error: `Unknown candidate field: ${key}` };
+                                }
+                            }
+
+                            if (!('zodiac' in c) || !('semanticStrength' in c) || !('reason' in c)) {
+                                return { valid: false, error: `Candidate missing required fields` };
+                            }
+
+                            if (!ZodiacConfig.ALL_ZODIACS.includes(c.zodiac)) {
+                                return { valid: false, error: `Invalid zodiac: ${c.zodiac}` };
+                            }
+                            if (seenZodiacs.has(c.zodiac)) {
+                                return { valid: false, error: `Duplicate zodiac found: ${c.zodiac}` };
+                            }
+                            seenZodiacs.add(c.zodiac);
+                            
+                            if (!Number.isInteger(c.semanticStrength) || c.semanticStrength < 0 || c.semanticStrength > 100) {
+                                return { valid: false, error: `Invalid semanticStrength: ${c.semanticStrength}. Must be integer 0-100.` };
+                            }
+                            
+                            if (typeof c.reason !== 'string') {
+                                return { valid: false, error: `Reason must be a string` };
+                            }
+                            if (c.reason.length > 100) {
+                                return { valid: false, error: `Reason exceeds 100 chars limit` };
+                            }
+                        }
+                        return { valid: true, data: data };
+                    }
+                    
+                    return { valid: false, error: `Unknown status: ${data.status}` };
+                } catch(e) {
+                    return { valid: false, error: 'Invalid JSON format (Parse Error)' };
+                }
+            }
+        };
+
+        // --- 2.3 AI PROVIDER ADAPTER (Track B) ---
+        const AIProviderAdapter = {
+            analyze: async function(params) {
+                // Input Contract
+                if (!params || typeof params.textPrompt !== 'string' || (params.imageBase64 !== null && typeof params.imageBase64 !== 'string') || typeof params.targetYear !== 'number' || typeof params.targetPeriod !== 'string') {
+                    throw new Error('PROVIDER_INVALID_INPUT_CONTRACT');
+                }
+
+                if (params.textPrompt === '' && params.imageBase64 === null) {
+                    throw new Error('PROVIDER_EMPTY_INPUT');
+                }
+
+                // API Key Security
+                const apiKeyInput = document.getElementById('tempApiKeyInput');
+                const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
+                if (!apiKey) {
+                    throw new Error('PROVIDER_UNCONFIGURED');
+                }
+
+                // Fixed Provider Contract
+                const endpoint = 'https://api.openai.com/v1/chat/completions';
+                const model = 'gpt-4o-mini';
+
+                const systemPrompt = `You are a strict data extraction AI. Output ONLY valid JSON.
+No Markdown. No code blocks. No explanations.
+If there are clues pointing to zodiac signs, return status "SUCCESS" with candidates.
+If no clues exist, return {"status": "FAILED_NO_CLUE"}.
+For SUCCESS, output MUST match exactly this schema:
+{
+  "status": "SUCCESS",
+  "candidates": [
+    {
+      "zodiac": "鼠|牛|虎|兔|龙|蛇|马|羊|猴|鸡|狗|猪",
+      "semanticStrength": <integer 0-100>,
+      "reason": "<string max 100 chars>"
+    }
+  ]
+}
+No duplicate zodiacs. Target Year: ${params.targetYear}, Period: ${params.targetPeriod}.`;
+
+                const messages = [
+                    { role: "system", content: systemPrompt }
+                ];
+
+                const userContent = [];
+                if (params.textPrompt) {
+                    userContent.push({ type: "text", text: params.textPrompt });
+                }
+                if (params.imageBase64) {
+                    userContent.push({ type: "image_url", image_url: { url: params.imageBase64 } });
+                }
+                messages.push({ role: "user", content: userContent });
+
+                // Timeout & Fetch
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                let response;
+                try {
+                    response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: messages
+                        }),
+                        signal: controller.signal
+                    });
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    if (err.name === 'AbortError') {
+                        throw new Error('PROVIDER_TIMEOUT');
+                    }
+                    throw new Error('PROVIDER_NETWORK_ERROR');
+                }
+                
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error('PROVIDER_HTTP_ERROR');
+                }
+
+                // Extract Raw Response
+                let data;
+                try {
+                    data = await response.json();
+                } catch (err) {
+                    throw new Error('PROVIDER_INVALID_RESPONSE');
+                }
+
+                if (!data || !data.choices || !data.choices[0] || !data.choices[0].message || !('content' in data.choices[0].message)) {
+                    throw new Error('PROVIDER_INVALID_RESPONSE');
+                }
+
+                const content = data.choices[0].message.content;
+                
+                if (typeof content !== 'string' || content.length === 0) {
+                    throw new Error('PROVIDER_EMPTY_RESPONSE');
+                }
+
+                return content; 
+            },
+
+            // 纯本地离线断言夹具 (用于验证契约无损)
+            runContractTests: function() {
+                console.log("=== 离线契约验证执行 ===");
+                const results = [];
+                const assertTest = (name, rawPayload, expectedValid) => {
+                    const validation = AISchemaValidator.validate(rawPayload);
+                    const passed = validation.valid === expectedValid;
+                    results.push({ test: name, passed, valid: validation.valid });
+                    console.log(`[Test] ${name}: ${passed ? 'PASS' : 'FAIL'}`);
+                };
+
+                assertTest("Test D (模拟): Validator 收到合法 SUCCESS JSON", JSON.stringify({
+                    status: "SUCCESS",
+                    candidates: [{ zodiac: "鼠", semanticStrength: 80, reason: "Mock Test" }]
+                }), true);
+
+                assertTest("Test E (模拟): FAILED_NO_CLUE 通过 Validator", JSON.stringify({
+                    status: "FAILED_NO_CLUE"
+                }), true);
+
+                assertTest("Test F (模拟): 非法 JSON 被拒绝", "{ status: 'INVALID', malformed... }", false);
+
+                console.log("=== 测试执行完毕 ===");
+                return results;
+            }
+        };
+
+        // --- 3. ANALYTICS MODULE (V34 Core) ---
+        class AnalyticsEngine {
+            constructor(historyData, clueSelections) {
+                this.historyData = historyData; 
+                this.clueSelections = clueSelections; 
+                this.zodiacStats = {};
+                ZodiacConfig.ALL_ZODIACS.forEach(z => {
+                    this.zodiacStats[z] = { freq: 0, omission: 0, score: 0 };
+                });
+            }
+
+            analyze() {
+                if (!this.historyData || this.historyData.length === 0) return null;
+
+                ZodiacConfig.ALL_ZODIACS.forEach(z => {
+                    let found = false;
+                    for (let i = 0; i < this.historyData.length; i++) {
+                        if (this.historyData[i] === z) {
+                            this.zodiacStats[z].freq++;
+                            if (!found) {
+                                this.zodiacStats[z].omission = i;
+                                found = true;
+                            }
+                        }
+                    }
+                    if (!found) this.zodiacStats[z].omission = this.historyData.length;
+                });
+
+                let consecutiveCount = 1;
+                let consecutiveZodiac = this.historyData[0];
+                for (let i = 1; i < this.historyData.length; i++) {
+                    if (this.historyData[i] === consecutiveZodiac) consecutiveCount++;
+                    else break;
+                }
+                const consecutiveStr = consecutiveCount > 1 ? `${consecutiveZodiac} (${consecutiveCount}连)` : '无明显连出';
+
+                let extremeColdZodiac = ZodiacConfig.ALL_ZODIACS[0];
+                let maxOmission = -1;
+                ZodiacConfig.ALL_ZODIACS.forEach(z => {
+                    if (this.zodiacStats[z].omission > maxOmission) {
+                        maxOmission = this.zodiacStats[z].omission;
+                        extremeColdZodiac = z;
+                    }
+                });
+                const extremeColdStr = `${extremeColdZodiac} (遗漏 ${maxOmission} 期)`;
+
+                ZodiacConfig.ALL_ZODIACS.forEach(z => {
+                    let score = (this.zodiacStats[z].freq * 2) - this.zodiacStats[z].omission;
+                    if (this.clueSelections.has(z)) score += 10;
+                    this.zodiacStats[z].score = score;
+                });
+
+                const sortedZodiacs = [...ZodiacConfig.ALL_ZODIACS].sort((a, b) => {
+                    if (this.zodiacStats[b].score !== this.zodiacStats[a].score) {
+                        return this.zodiacStats[b].score - this.zodiacStats[a].score;
+                    }
+                    return this.zodiacStats[a].omission - this.zodiacStats[b].omission; 
+                });
+
+                return {
+                    top5: sortedZodiacs.slice(0, 5),
+                    kill3: sortedZodiacs.slice(-3).reverse(),
+                    consecutive: consecutiveStr,
+                    extremeCold: extremeColdStr,
+                    stats: this.zodiacStats
+                };
+            }
+        }
+
+        // --- 4. PREDICTION MODULE (Phase 3A/3B Pattern Signals) ---
+        class PredictionEngine {
+            constructor(rawZodiacs) {
+                this.rawZodiacs = rawZodiacs || [];
+                this.SHORT_WINDOW = 10;
+                this.REVERSION_BASELINE = 24;
+            }
+
+            generatePrediction() {
+                const totalSamples = this.rawZodiacs.length;
+                
+                if (totalSamples < 10) {
+                    return { modelStatus: 'COLD_START', predictionTop3: [], predictionAvoid: [], predictionDetails: [] };
+                }
+
+                let modelStatus = totalSamples < 30 ? 'LOW_CONFIDENCE' : 'ACTIVE';
+                const details = [];
+
+                ZodiacConfig.ALL_ZODIACS.forEach(z => {
+                    const recentSlice = this.rawZodiacs.slice(0, this.SHORT_WINDOW);
+                    const recentFreq = recentSlice.filter(x => x === z).length;
+                    
+                    let currentOmission = this.rawZodiacs.indexOf(z);
+                    if (currentOmission === -1) currentOmission = totalSamples;
+
+                    const baselineSlice = this.rawZodiacs.slice(0, this.REVERSION_BASELINE);
+                    const baselineFreq = baselineSlice.filter(x => x === z).length;
+
+                    let rawIndex = 50 + (recentFreq * 8) - (currentOmission * 1.5) + (baselineFreq * 2);
+                    rawIndex = Math.max(0, Math.min(100, rawIndex)); 
+
+                    const signals = [];
+                    if (recentFreq >= 3) signals.push('短期极热');
+                    if (currentOmission > 15) signals.push('深度沉睡');
+                    if (rawIndex > 80) signals.push('强动量上行');
+                    if (rawIndex < 20) signals.push('均值回归受阻');
+
+                    details.push({
+                        zodiac: z,
+                        predictionIndex: rawIndex,
+                        recentFreq: recentFreq,
+                        currentOmission: currentOmission,
+                        signals: signals
+                    });
+                });
+
+                details.sort((a, b) => b.predictionIndex - a.predictionIndex);
+
+                return {
+                    modelStatus,
+                    predictionTop3: details.slice(0, 3).map(d => d.zodiac),
+                    predictionAvoid: details.slice(-3).map(d => d.zodiac),
+                    predictionDetails: details
+                };
+            }
+        }
+
+        // --- 5. UI CONTROLLER MODULE ---
+        const UIController = {
+            clueSelections: new Set(),
+            appContext: null,
+
+            init: function(appContext) {
+                this.appContext = appContext;
+                this.bindEvents();
+                this.renderClueSelector();
+            },
+
+            bindEvents: function() {
+                document.getElementById('quickNumberInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') this.appContext.quickAddData(); });
+                document.getElementById('yearSelect').addEventListener('change', () => this.appContext.refreshNextPeriod());
+                document.getElementById('clearClueSelectionsBtn').addEventListener('click', () => { this.clueSelections.clear(); this.renderClueSelector(); if (this.appContext.historyData.length) this.appContext.runAnalysis(true); });
+                document.getElementById('runAnalysisBtn').addEventListener('click', () => this.appContext.runAnalysis());
+            },
+
+            showToast: function(message, type = 'success') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                const bgColor = type === 'error' ? 'bg-rose-500' : (type === 'warn' ? 'bg-amber-500' : 'bg-emerald-500');
+                
+                toast.className = `${bgColor} text-white px-4 py-2.5 rounded shadow-lg text-sm font-medium toast-enter`;
+                toast.textContent = message;
+                
+                container.appendChild(toast);
+                
+                toast.offsetHeight;
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-enter-active');
+
+                setTimeout(() => {
+                    toast.classList.remove('toast-enter-active');
+                    toast.classList.add('toast-exit');
+                    setTimeout(() => {
+                        toast.classList.add('toast-exit-active');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 50);
+                }, 3000);
+            },
+
+            updateDashboardStatus: function(totalCount) {
+                const statsEl = document.getElementById('historyStats');
+                if (statsEl) {
+                    statsEl.textContent = `当前已录入 ${totalCount} 期历史数据`;
+                }
+            },
+
+            getBallColor: function(number) {
+                const n = Number(number);
+                const red = new Set([1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46]);
+                const blue = new Set([3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48]);
+                return red.has(n) ? 'red' : (blue.has(n) ? 'blue' : 'green');
+            },
+
+            renderHistoryList: function(records) {
+                const container = document.getElementById('historyListContainer');
+                const badge = document.getElementById('historyCountBadge');
+                if (badge) badge.textContent = `共存 ${(records || []).length} 期`;
+                if (!container) return;
+                if (!records || records.length === 0) {
+                    container.innerHTML = '<div class="empty-history">暂无历史数据。</div>';
+                    return;
+                }
+                container.innerHTML = records.map((r, index) => {
+                    const ballColor = this.getBallColor(r.number);
+                    const latest = index === 0 ? '<span class="latest-badge">最新</span>' : '<span class="latest-placeholder"></span>';
+                    return `
+                    <div class="history-row">
+                        <span class="history-period">${r.period}</span>
+                        <span class="number-ball ${ballColor}">${r.number}</span>
+                        <span class="history-zodiac">${r.zodiac}</span>
+                        ${latest}
+                        <button class="history-action" onclick="App.editHistoryRecord(${r.year}, '${r.period}')">修改</button>
+                        <button class="history-review" onclick="App.reviewHistoryRecord(${r.year}, '${r.period}')"><span class="arrow">↶</span>复盘</button>
+                    </div>`;
+                }).join('');
+            },
+
+            renderClueSelector: function() {
+                const container = document.getElementById('clueContainer');
+                if (!container) return;
+                
+                container.innerHTML = '';
+                ZodiacConfig.ALL_ZODIACS.forEach(z => {
+                    const btn = document.createElement('button');
+                    const isSelected = this.clueSelections.has(z);
+                    btn.className = `px-4 py-2 text-sm rounded-md border transition-all duration-200 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-md font-bold transform scale-105' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'}`;
+                    btn.textContent = z;
+                    btn.onclick = () => {
+                        if (isSelected) {
+                            this.clueSelections.delete(z);
+                        } else {
+                            this.clueSelections.add(z);
+                        }
+                        this.renderClueSelector();
+                        if (this.appContext && this.appContext.historyData.length > 0) {
+                            this.appContext.runAnalysis(true); 
+                        }
+                    };
+                    container.appendChild(btn);
+                });
+            },
+
+            updateResults: function(analyticsResults, predictionContext = null) {
+                this._renderV34Analytics(analyticsResults);
+                this._renderPatternSignals(predictionContext);
+            },
+
+            _renderV34Analytics: function(results) {
+                const resultsEl = document.getElementById('analysisResults');
+                if (!resultsEl) return;
+                
+                if (!results) {
+                    resultsEl.innerHTML = '<div class="text-slate-400 text-center py-8 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-300">暂无分析结果，请录入数据并执行分析。</div>';
+                    return;
+                }
+
+                let html = `<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">`;
+                
+                html += `<div class="bg-indigo-50/50 p-4 rounded-lg border border-indigo-100">`;
+                html += `<h3 class="font-bold text-indigo-800 mb-3 text-sm flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>综合推荐 Top 5</h3>`;
+                html += `<div class="flex flex-wrap gap-2">`;
+                results.top5.forEach(z => html += `<span class="bg-indigo-600 text-white px-3 py-1.5 rounded-md font-bold text-sm shadow-sm">${z}</span>`);
+                html += `</div></div>`;
+
+                html += `<div class="bg-rose-50/50 p-4 rounded-lg border border-rose-100">`;
+                html += `<h3 class="font-bold text-rose-800 mb-3 text-sm flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>低置信排除 Kill 3</h3>`;
+                html += `<div class="flex flex-wrap gap-2">`;
+                results.kill3.forEach(z => html += `<span class="bg-rose-500 text-white px-3 py-1.5 rounded-md font-bold text-sm shadow-sm">${z}</span>`);
+                html += `</div></div>`;
+                html += `</div>`;
+
+                html += `<div class="flex flex-col md:flex-row gap-4 p-4 bg-slate-50/80 rounded-lg text-sm text-slate-700 border border-slate-100">`;
+                html += `<div class="flex-1"><span class="text-slate-500 mr-2">近期高频连出:</span> <strong class="text-indigo-700">${results.consecutive}</strong></div>`;
+                html += `<div class="flex-1"><span class="text-slate-500 mr-2">历史极冷沉睡:</span> <strong class="text-rose-700">${results.extremeCold}</strong></div>`;
+                html += `</div>`;
+
+                resultsEl.innerHTML = html;
+            },
+
+            _renderPatternSignals: function(context) {
+                const container = document.getElementById('v34-pattern-signals-container');
+                if (!container) return;
+
+                if (!context) {
+                    container.style.display = 'none';
+                    return;
+                }
+                
+                container.style.display = 'block';
+                
+                if (context.error) {
+                    container.innerHTML = `<div class="p-4 text-rose-600 font-bold bg-rose-50 border-l-4 border-rose-500 text-sm">${context.message}</div>`;
+                    return;
+                }
+
+                const disclaimer = `
+                    <div class="p-3 bg-amber-50/80 text-amber-800 text-xs border-b border-amber-200 flex items-start gap-2 leading-relaxed">
+                        <span class="mt-0.5 text-amber-500"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg></span>
+                        <span><b>安全免责声明：</b> 本模块仅对历史遗漏等形态进行数学特征映射。历史形态不代表未来开奖结果，指数也不是概率或胜率，切勿作为购买依据。</span>
+                    </div>
+                `;
+
+                let html = `${disclaimer}<div class="p-4 md:p-5">`;
+                html += `<h2 class="text-base font-bold text-slate-800 mb-4 border-l-3 border-indigo-400 pl-2 flex items-center">走势偏离信号 (Phase 3B)</h2>`;
+
+                if (context.modelStatus === 'COLD_START') {
+                    html += `<div class="py-8 text-center text-slate-400 text-sm bg-slate-50 rounded-lg border border-slate-100">❄️ 冷启动：当前历史样本不足 (需 ≥10期)，暂不生成走势信号。</div>`;
+                } else {
+                    if (context.modelStatus === 'LOW_CONFIDENCE') {
+                        html += `<div class="mb-4 text-xs text-amber-700 font-semibold bg-amber-50/50 border border-amber-100 p-2.5 rounded-md flex items-center"><svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>低置信状态：样本量较小 (<30期)，仅供基础形态观察。</div>`;
+                    }
+
+                    html += `<div class="flex flex-col md:flex-row gap-4 mb-6">`;
+                    
+                    html += `<div class="flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">`;
+                    html += `<h3 class="font-bold text-slate-700 mb-1 text-sm flex items-center"><svg class="w-4 h-4 mr-1 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>高偏离形态 Top 3</h3>`;
+                    html += `<p class="text-[11px] text-slate-400 mb-3">排名仅代表偏离指数，不构成推荐。</p>`;
+                    html += `<div class="flex gap-2">`;
+                    (context.predictionTop3 || []).forEach(z => html += `<span class="bg-slate-700 text-white px-3 py-1.5 rounded-md font-medium text-sm shadow-sm">${z}</span>`);
+                    html += `</div></div>`;
+
+                    html += `<div class="flex-1 p-4 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">`;
+                    html += `<h3 class="font-bold text-slate-600 mb-1 text-sm flex items-center"><svg class="w-4 h-4 mr-1 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>低偏离形态 Top 3</h3>`;
+                    html += `<p class="text-[11px] text-slate-400 mb-3">处于均值回归末端，动量较弱。</p>`;
+                    html += `<div class="flex gap-2">`;
+                    (context.predictionAvoid || []).forEach(z => html += `<span class="bg-slate-200 text-slate-700 px-3 py-1.5 rounded-md font-medium text-sm border border-slate-300 shadow-sm">${z}</span>`);
+                    html += `</div></div>`;
+                    
+                    html += `</div>`;
+
+                    if (context.predictionDetails && context.predictionDetails.length > 0) {
+                        html += `<h3 class="font-bold text-slate-700 mb-3 text-sm">形态偏离参数矩阵</h3>`;
+                        html += `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">`;
+                        
+                        context.predictionDetails.forEach(d => {
+                            const signalText = (d.signals && d.signals.length > 0) ? d.signals.join(', ') : '形态平稳';
+                            const signalClass = d.signals.length > 0 ? 'text-indigo-600 font-bold' : 'text-slate-400';
+                            
+                            html += `
+                                <div class="p-3 border border-slate-100 rounded-lg shadow-sm bg-white hover:border-indigo-200 transition-colors">
+                                    <div class="flex justify-between items-center mb-2 border-b border-slate-50 pb-2">
+                                        <span class="font-bold text-base text-slate-800">${d.zodiac}</span>
+                                        <span class="text-[10px] font-mono bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-100">IDX ${d.predictionIndex.toFixed(1)}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 space-y-1.5">
+                                        <div class="flex justify-between"><span>近期出现</span> <span class="font-semibold text-slate-700">${d.recentFreq}次</span></div>
+                                        <div class="flex justify-between"><span>当前遗漏</span> <span class="font-semibold text-slate-700">${d.currentOmission}期</span></div>
+                                        <div class="mt-2 text-[10px] truncate ${signalClass}" title="${signalText}">${signalText}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += `</div>`;
+                    }
+                }
+
+                html += `</div>`;
+                container.innerHTML = html;
+            }
+        };
+
+        // --- 5.1 CLUE CONTROLLER MODULE (Track B) ---
+        const ClueController = {
+            clues: [],
+            currentImageBase64: null,
+            manualSelections: new Set(),
+
+            init: function() {
+                this.clues = ClueStorageEngine.load();
+                this.bindEvents();
+                this.renderManualSelector();
+                this.renderList();
+            },
+
+            bindEvents: function() {
+                const imgInput = document.getElementById('clueImageInput');
+                const removeImgBtn = document.getElementById('clueRemoveImageBtn');
+                const saveBtn = document.getElementById('saveClueBtn');
+
+                if (imgInput) {
+                    imgInput.addEventListener('change', (e) => this.handleImageUpload(e));
+                }
+                if (removeImgBtn) {
+                    removeImgBtn.addEventListener('click', () => this.removeImage());
+                }
+                if (saveBtn) {
+                    saveBtn.addEventListener('click', () => this.saveClue());
+                }
+                const strength = document.getElementById('manualClueStrength');
+                if (strength) strength.addEventListener('input', () => document.getElementById('manualClueStrengthValue').textContent = strength.value);
+            },
+
+            renderManualSelector: function() {
+                const container = document.getElementById('manualClueZodiacContainer');
+                if (!container) return;
+                container.innerHTML = '';
+                ZodiacConfig.ALL_ZODIACS.forEach(z => {
+                    const b = document.createElement('button'); b.type='button';
+                    const on = this.manualSelections.has(z);
+                    b.className = `px-3 py-1.5 text-xs rounded border ${on ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-600 border-slate-200'}`; b.textContent=z;
+                    b.onclick=()=>{ on ? this.manualSelections.delete(z) : this.manualSelections.add(z); this.renderManualSelector(); }; container.appendChild(b);
+                });
+            },
+
+            generateHash: function(str) {
+                let hash = 0;
+                if (str.length === 0) return hash.toString(36);
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash;
+                }
+                return hash.toString(36);
+            },
+
+            handleImageUpload: function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.currentImageBase64 = e.target.result;
+                    const previewContainer = document.getElementById('clueImagePreviewContainer');
+                    const previewImg = document.getElementById('clueImagePreview');
+                    if (previewContainer && previewImg) {
+                        previewImg.src = this.currentImageBase64;
+                        previewContainer.classList.remove('hidden');
+                    }
+                };
+                reader.readAsDataURL(file);
+            },
+
+            removeImage: function() {
+                this.currentImageBase64 = null;
+                const imgInput = document.getElementById('clueImageInput');
+                const previewContainer = document.getElementById('clueImagePreviewContainer');
+                const previewImg = document.getElementById('clueImagePreview');
+                
+                if (imgInput) imgInput.value = '';
+                if (previewImg) previewImg.src = '';
+                if (previewContainer) previewContainer.classList.add('hidden');
+            },
+
+            saveClue: function() {
+                const year = document.getElementById('clueTargetYear').value.trim();
+                const period = document.getElementById('clueTargetPeriod').value.trim();
+                let text = document.getElementById('clueTextInput').value.trim();
+
+                if (!year || !period) {
+                    UIController.showToast('目标年份和期数不能为空', 'error');
+                    return;
+                }
+                if (!text && !this.currentImageBase64 && this.manualSelections.size === 0) {
+                    UIController.showToast('请至少提供文字、图片或人工生肖线索', 'error');
+                    return;
+                }
+
+                const normalizedText = text.replace(/\s+/g, ' ').trim();
+                const hashSource = normalizedText + (this.currentImageBase64 || '') + [...this.manualSelections].sort().join(',');
+                const inputHash = this.generateHash(hashSource);
+
+                const isDuplicate = this.clues.some(c => 
+                    c.targetYear.toString() === year && 
+                    c.targetPeriod === period && 
+                    c.inputHash === inputHash
+                );
+
+                if (isDuplicate) {
+                    UIController.showToast('该线索已记录，请勿重复提交', 'warn');
+                    return;
+                }
+
+                const newClue = {
+                    id: 'clue_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
+                    targetYear: parseInt(year, 10),
+                    targetPeriod: period,
+                    inputHash: inputHash,
+                    textContent: text,
+                    hasImage: !!this.currentImageBase64,
+                    analysisResult: this.manualSelections.size ? 'MANUAL' : 'RECORDED', 
+                    zodiacCandidates: [...this.manualSelections].map(z => ({ zodiac: z, semanticStrength: parseInt(document.getElementById('manualClueStrength').value,10), reason: '人工结构化线索' })),
+                    auxiliaryScore: parseInt(document.getElementById('manualClueStrength').value,10),         
+                    createdAt: Date.now()
+                };
+
+                this.clues.unshift(newClue); 
+                if (ClueStorageEngine.save(this.clues)) {
+                    UIController.showToast('辅助线索已记录');
+                    this.manualSelections.clear(); this.renderManualSelector(); document.getElementById('manualClueStrength').value='50'; document.getElementById('manualClueStrengthValue').textContent='50';
+                    
+                    document.getElementById('clueTextInput').value = '';
+                    this.removeImage();
+                    this.renderList();
+                } else {
+                    UIController.showToast('保存线索失败', 'error');
+                }
+            },
+
+            deleteClue: function(id) {
+                if (confirm('确定删除该线索记录？')) {
+                    this.clues = ClueStorageEngine.delete(id);
+                    this.renderList();
+                    UIController.showToast('已删除线索');
+                }
+            },
+
+            analyzeClue: async function(id) {
+                const clueIndex = this.clues.findIndex(c => c.id === id);
+                if (clueIndex === -1) return;
+                const clue = this.clues[clueIndex];
+
+                if (clue.analysisResult === 'ANALYZING' || clue.analysisResult === 'SUCCESS') {
+                    return; 
+                }
+
+                clue.analysisResult = 'ANALYZING';
+                this.renderList(); 
+
+                try {
+                    let runtimeImage = null;
+                    if (clue.hasImage && this.currentImageBase64) {
+                        runtimeImage = this.currentImageBase64;
+                    }
+
+                    const aiRawResponse = await AIProviderAdapter.analyze({
+                        textPrompt: clue.textContent,
+                        imageBase64: runtimeImage,
+                        targetYear: clue.targetYear,
+                        targetPeriod: clue.targetPeriod
+                    });
+
+                    const validation = AISchemaValidator.validate(aiRawResponse);
+                    if (validation.valid) {
+                        clue.analysisResult = validation.data.status;
+                        clue.zodiacCandidates = validation.data.candidates || [];
+                        clue.auxiliaryScore = 0; 
+                    } else {
+                        clue.analysisResult = 'INVALID';
+                        clue.zodiacCandidates = [];
+                        clue.auxiliaryScore = 0;
+                        console.warn("AI Schema Validation Failed:", validation.error);
+                    }
+                } catch (err) {
+                    if (err.message === 'PROVIDER_UNCONFIGURED') {
+                        UIController.showToast('未配置 AI 接口，图文解析暂不可用', 'error');
+                    } else if (err.message === 'PROVIDER_EMPTY_INPUT') {
+                        UIController.showToast('输入内容为空，无法解析', 'error');
+                    } else if (err.message === 'PROVIDER_INVALID_INPUT_CONTRACT') {
+                        UIController.showToast('输入契约错误', 'error');
+                    } else {
+                        UIController.showToast('AI 解析发生异常', 'error');
+                    }
+                    clue.analysisResult = 'ERROR';
+                    clue.zodiacCandidates = [];
+                    clue.auxiliaryScore = 0;
+                }
+
+                ClueStorageEngine.save(this.clues);
+                this.renderList();
+            },
+
+            renderList: function() {
+                const container = document.getElementById('clueListContainer');
+                if (!container) return;
+
+                if (this.clues.length === 0) {
+                    container.innerHTML = '<div class="text-slate-400 text-center py-4 text-xs">暂无图文线索记录。</div>';
+                    return;
+                }
+
+                let html = '';
+                this.clues.forEach(c => {
+                    const dateStr = new Date(c.createdAt).toLocaleString('zh-CN', { hour12: false });
+                    
+                    let statusColor = 'text-slate-500 bg-slate-100 border-slate-200';
+                    let actionHtml = '';
+
+                    if (c.analysisResult === 'PENDING' || c.analysisResult === 'INVALID' || c.analysisResult === 'ERROR') {
+                        actionHtml = `<button onclick="ClueController.analyzeClue('${c.id}')" class="bg-indigo-500 hover:bg-indigo-600 text-white text-[10px] px-2 py-1 rounded shadow-sm transition-colors">执行解析</button>`;
+                        if (c.analysisResult === 'ERROR') statusColor = 'text-rose-600 bg-rose-50 border-rose-200';
+                        if (c.analysisResult === 'INVALID') statusColor = 'text-amber-600 bg-amber-50 border-amber-200';
+                    } else if (c.analysisResult === 'ANALYZING') {
+                        actionHtml = `<span class="text-[10px] text-indigo-500 animate-pulse font-medium">解析中...</span>`;
+                        statusColor = 'text-indigo-600 bg-indigo-50 border-indigo-200';
+                    } else if (c.analysisResult === 'SUCCESS') {
+                        actionHtml = `<span class="text-[10px] text-emerald-600 font-bold flex items-center"><svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>解析完成</span>`;
+                        statusColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+                    } else if (c.analysisResult === 'MANUAL' || c.analysisResult === 'RECORDED') {
+                        actionHtml = c.zodiacCandidates && c.zodiacCandidates.length ? `<span class="text-[10px] text-indigo-600 font-bold">${c.zodiacCandidates.map(x=>x.zodiac).join('、')} · 强度 ${c.auxiliaryScore}</span>` : `<span class="text-[10px] text-slate-500">已记录</span>`;
+                        statusColor = 'text-indigo-600 bg-indigo-50 border-indigo-200';
+                    } else if (c.analysisResult === 'FAILED_NO_CLUE') {
+                        actionHtml = `<span class="text-[10px] text-slate-500 font-bold">无有效线索</span>`;
+                        statusColor = 'text-slate-600 bg-slate-50 border-slate-300';
+                    }
+                    
+                    html += `
+                        <div class="bg-white p-3 rounded-md border border-slate-200 shadow-sm relative text-sm">
+                            <button onclick="ClueController.deleteClue('${c.id}')" class="absolute top-2 right-2 text-slate-400 hover:text-rose-500" title="删除">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                            <div class="flex justify-between items-center mb-2 pr-6">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded text-xs">第 ${c.targetYear}-${c.targetPeriod} 期</span>
+                                    <span class="text-[10px] text-slate-400">${dateStr}</span>
+                                </div>
+                            </div>
+                            ${c.textContent ? `<div class="text-slate-700 text-xs mb-2 bg-slate-50 p-2 rounded">${c.textContent}</div>` : ''}
+                            ${c.hasImage ? `<div class="text-xs text-indigo-500 flex items-center mb-2"><svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>[本记录曾包含图片]</div>` : ''}
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                                <span class="text-[10px] border px-1.5 py-0.5 rounded ${statusColor}">状态: ${c.analysisResult}</span>
+                                <div>${actionHtml}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+        };
+
+        // --- 6. APP ORCHESTRATOR MODULE ---
+        const App = {
+            historyData: [],
+
+            toggleBatchPanel: function() {
+                const panel = document.getElementById('batchImportPanel');
+                const btn = document.getElementById('batchToggleBtn');
+                if (!panel) return;
+                panel.hidden = !panel.hidden;
+                if (btn) btn.textContent = panel.hidden ? '切换批量导入' : '收起批量导入';
+                if (!panel.hidden) {
+                    const input = document.getElementById('importDataInput');
+                    if (input) setTimeout(() => input.focus(), 0);
+                }
+            },
+
+            seedBuiltinHistory: function() {
+                try {
+                    // 不再只依赖 marker。即使旧版曾写入 marker 但主历史库为空，也会自动补回内置数据。
+                    const loaded = StorageEngine.load();
+                    const current = Array.isArray(loaded) ? loaded : [];
+                    const map = new Map();
+                    current.forEach(r => {
+                        if (!r || !Number.isFinite(Number(r.year)) || !Number.isFinite(Number(r.period))) return;
+                        map.set(`${Number(r.year)}-${Number(r.period)}`, r);
+                    });
+
+                    let changed = 0;
+                    BUILTIN_HISTORY_2026.forEach(([period, number]) => {
+                        const zodiac = NumberZodiacMapper[2026][number];
+                        const key = `2026-${Number(period)}`;
+                        const record = { year:2026, period:String(period).padStart(3,'0'), number:Number(number), zodiac };
+                        const existing = map.get(key);
+                        if (!existing) {
+                            changed++;
+                            map.set(key, record);
+                        }
+                    });
+
+                    const merged = Array.from(map.values());
+                    if (changed > 0) {
+                        if (!StorageEngine.save(merged)) return {seeded:false, count:0, error:true};
+                    }
+                    try { localStorage.setItem(BUILTIN_HISTORY_SEED_KEY, '1'); } catch (_) {}
+                    return {seeded:changed > 0, count:BUILTIN_HISTORY_2026.length, changed};
+                } catch (e) {
+                    console.error('Builtin history seed failed:', e);
+                    return {seeded:false, count:0, error:true};
+                }
+            },
+
+            init: function() {
+                UIController.init(this);
+                ClueController.init();
+
+                const seedResult = this.seedBuiltinHistory();
+                this.loadData();
+                
+                UIController.updateDashboardStatus(this.historyData.length);
+                UIController.renderHistoryList(this.historyData);
+                this.refreshNextPeriod();
+                if (this.historyData.length > 0) {
+                    this.runAnalysis(true); 
+                }
+                if (seedResult && seedResult.seeded) {
+                    UIController.showToast(`已自动载入 2026年 049-230期，共 ${seedResult.count} 期历史数据`);
+                }
+            },
+
+            loadData: function() {
+                this.historyData = this.sortHistory(StorageEngine.load());
+            },
+
+            sortHistory: function(records) {
+                return (records || []).slice().sort((a,b) => (Number(b.year||0)-Number(a.year||0)) || (Number(b.period)-Number(a.period)));
+            },
+
+            refreshNextPeriod: function() {
+                const yearEl = document.getElementById('yearSelect');
+                const periodInput = document.getElementById('quickPeriodInput');
+                const periodText = document.getElementById('nextPeriodText');
+                if (!yearEl || !periodInput || !periodText) return;
+                const year = Number(yearEl.value);
+                const periods = this.historyData
+                    .filter(r => Number(r.year) === year && /^\d+$/.test(String(r.period)))
+                    .map(r => Number(r.period))
+                    .filter(Number.isFinite);
+                const next = periods.length ? Math.max(...periods) + 1 : '';
+                periodInput.value = next === '' ? '' : String(next);
+                periodText.textContent = next === '' ? '--' : String(next);
+            },
+
+            upsertRecord: function(record, askOnConflict = true) {
+                const idx = this.historyData.findIndex(x => Number(x.year)===Number(record.year) && Number(x.period)===Number(record.period));
+                if (idx >= 0) {
+                    const old = this.historyData[idx];
+                    if (Number(old.number) === Number(record.number)) return 'duplicate';
+                    if (askOnConflict && !confirm(`${record.year}-${record.period}期已存在 ${old.number}号（${old.zodiac}）。是否改为 ${record.number}号（${record.zodiac}）？`)) return 'cancel';
+                    this.historyData[idx] = record;
+                    return 'updated';
+                }
+                this.historyData.push(record); return 'added';
+            },
+
+            persistHistory: function() {
+                this.historyData = this.sortHistory(this.historyData); StorageEngine.save(this.historyData);
+                UIController.updateDashboardStatus(this.historyData.length); UIController.renderHistoryList(this.historyData); this.refreshNextPeriod();
+                if (this.historyData.length) this.runAnalysis(true); else UIController.updateResults(null, null);
+            },
+
+            quickAddData: function() {
+                const year = parseInt(document.getElementById('yearSelect').value,10);
+                let period = document.getElementById('quickPeriodInput').value.trim();
+                const raw = document.getElementById('quickNumberInput').value.trim();
+
+                if (!period) {
+                    const manual = prompt('当前年份还没有历史期数，请输入本次期数：');
+                    if (manual === null) return;
+                    period = manual.trim();
+                }
+                if (!/^\d+$/.test(period)) return UIController.showToast('期数必须为数字','error');
+                if (!/^\d+$/.test(raw)) return UIController.showToast('请输入 1-49 的特码号码','error');
+                const number = Number(raw);
+                if (number < 1 || number > 49) return UIController.showToast('号码必须为 1-49','error');
+                const zodiac = NumberZodiacMapper[year] && NumberZodiacMapper[year][number];
+                if (!zodiac) return UIController.showToast('当前年份号码映射不可用','error');
+
+                const result = this.upsertRecord({year,period,number,zodiac},true);
+                if (result === 'cancel') return;
+                this.persistHistory();
+                document.getElementById('quickNumberInput').value = '';
+                document.getElementById('quickNumberInput').focus();
+                UIController.showToast(result==='updated'?'该期数据已修改':result==='duplicate'?'该期数据已存在':'已存入最新开奖', result==='duplicate'?'warn':'success');
+            },
+
+            editHistoryRecord: function(year, period) {
+                const item=this.historyData.find(x=>Number(x.year)===Number(year)&&Number(x.period)===Number(period)); if(!item)return;
+                const raw=prompt(`${year}-${period}期：请输入新号码（1-49）`, String(item.number)); if(raw===null)return;
+                if(!/^\d+$/.test(raw.trim())||Number(raw)<1||Number(raw)>49) return UIController.showToast('号码必须为 1-49','error');
+                const number=Number(raw), zodiac=NumberZodiacMapper[year][number]; item.number=number; item.zodiac=zodiac; this.persistHistory(); UIController.showToast('历史记录已修改');
+            },
+
+            deleteHistoryRecord: function(year, period) {
+                if(!confirm(`确定删除 ${year}-${period}期？`))return; this.historyData=this.historyData.filter(x=>!(Number(x.year)===Number(year)&&Number(x.period)===Number(period))); this.persistHistory(); UIController.showToast('历史记录已删除');
+            },
+
+            reviewHistoryRecord: function(year, period) {
+                const idx = this.historyData.findIndex(x => Number(x.year)===Number(year) && Number(x.period)===Number(period));
+                if (idx < 0) return;
+                const reviewRecords = this.historyData.slice(idx);
+                const rawZodiacs = reviewRecords.map(r => r.zodiac);
+                if (!rawZodiacs.length) return;
+                const analytics = new AnalyticsEngine(rawZodiacs, UIController.clueSelections);
+                const analyticsResults = analytics.analyze();
+                let predictionContext = null;
+                try { predictionContext = new PredictionEngine(rawZodiacs).generatePrediction(); }
+                catch (err) { predictionContext = { error:true, message:'复盘走势信号暂不可用。' }; }
+                UIController.updateResults(analyticsResults, predictionContext);
+                UIController.showToast(`已复盘至 ${period}期（使用该期及以前 ${reviewRecords.length} 期）`);
+                const results = document.getElementById('analysisResults');
+                if (results) results.scrollIntoView({behavior:'smooth', block:'start'});
+            },
+
+            importData: function() {
+                const inputEl = document.getElementById('importDataInput');
+                const input = inputEl ? inputEl.value.trim() : '';
+                const year = parseInt(document.getElementById('yearSelect').value, 10);
+
+                if (!input) {
+                    UIController.showToast('请粘贴批量历史数据', 'warn');
+                    return;
+                }
+                if (!NumberZodiacMapper[year]) {
+                    UIController.showToast(`暂不支持 ${year} 年的号码映射`, 'error');
+                    return;
+                }
+
+                // 支持：049期 13 / 049期<TAB>13 / 049,13 / 049，13 / 049 13
+                const lines = input.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+                const parsed = [];
+                const seenBatchPeriods = new Set();
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const match = line.match(/^(\d{1,7})\s*期?\s*(?:[,，:：\-]|\s)+\s*(\d{1,2})\s*$/);
+                    if (!match) {
+                        UIController.showToast(`第 ${i + 1} 行格式无法识别：${line}`, 'error');
+                        return;
+                    }
+
+                    const periodNum = Number(match[1]);
+                    const number = Number(match[2]);
+                    if (!Number.isSafeInteger(periodNum) || periodNum < 0) {
+                        UIController.showToast(`第 ${i + 1} 行期数无效：${match[1]}`, 'error');
+                        return;
+                    }
+                    if (!Number.isSafeInteger(number) || number < 1 || number > 49) {
+                        UIController.showToast(`第 ${i + 1} 行号码必须为 1-49：${match[2]}`, 'error');
+                        return;
+                    }
+                    if (seenBatchPeriods.has(periodNum)) {
+                        UIController.showToast(`批量内容中期数重复：${match[1]}期`, 'error');
+                        return;
+                    }
+                    seenBatchPeriods.add(periodNum);
+
+                    const zodiac = NumberZodiacMapper[year][number];
+                    if (!zodiac) {
+                        UIController.showToast(`第 ${i + 1} 行号码映射失败`, 'error');
+                        return;
+                    }
+                    const period = String(match[1]).padStart(3, '0');
+                    parsed.push({ year, period, number, zodiac });
+                }
+
+                // 整批解析全部通过后才写入，避免半批成功半批失败。
+                let added = 0, updated = 0, duplicates = 0;
+                for (const record of parsed) {
+                    const idx = this.historyData.findIndex(x => Number(x.year) === year && Number(x.period) === Number(record.period));
+                    if (idx >= 0) {
+                        const old = this.historyData[idx];
+                        if (Number(old.number) === record.number) {
+                            duplicates++;
+                        } else {
+                            this.historyData[idx] = record;
+                            updated++;
+                        }
+                    } else {
+                        this.historyData.push(record);
+                        added++;
+                    }
+                }
+
+                this.persistHistory();
+                if (inputEl) inputEl.value = '';
+                UIController.showToast(`批量导入完成：新增 ${added}，更新 ${updated}，重复 ${duplicates}`);
+            },
+
+            runAnalysis: function(silent = false) {
+                if (this.historyData.length === 0) {
+                    if(!silent) UIController.showToast('暂无历史数据，无法执行分析', 'warn');
+                    return;
+                }
+
+                const rawZodiacs = this.historyData.map(r => r.zodiac);
+                
+                const analytics = new AnalyticsEngine(rawZodiacs, UIController.clueSelections);
+                const analyticsResults = analytics.analyze();
+
+                let predictionContext = null;
+                try {
+                    const predictionEngine = new PredictionEngine(rawZodiacs);
+                    predictionContext = predictionEngine.generatePrediction();
+                } catch (err) {
+                    console.error("Prediction Engine crashed:", err);
+                    predictionContext = { error: true, message: "走势信号暂不可用，内部计算异常。" };
+                }
+
+                UIController.updateResults(analyticsResults, predictionContext);
+                if(!silent) UIController.showToast('分析完成！');
+            }
+        };
+
+        // 明确暴露给 HTML 内联按钮（修改 / 复盘 / 批量切换），提升 iOS 文件预览兼容性。
+        window.App = App;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const runtimeWarning = document.getElementById('runtimeModeWarning');
+            if (runtimeWarning) runtimeWarning.classList.add('runtime-ok');
+            try {
+                App.init();
+            } catch (err) {
+                console.error('V34 initialization failed:', err);
+                if (runtimeWarning) {
+                    runtimeWarning.classList.remove('runtime-ok');
+                    runtimeWarning.textContent = '⚠️ V34 初始化失败：' + (err && err.message ? err.message : '未知错误') + '。请截图此提示发给我。';
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>
