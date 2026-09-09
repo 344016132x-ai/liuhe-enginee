@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.4.2 走势分析系统<span id="buildStamp" style="font-size:9px;color:#94a3b8;margin-left:6px">Build 22.4.2-FIX</span></title>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
+<title>V22.4.3 走势分析系统<span id="buildStamp" style="font-size:9px;color:#94a3b8;margin-left:6px">Build 22.4.2-FIX</span></title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -106,7 +105,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.2</span></h1><p>历史80分 + 本地图文辅助20分 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.3</span> <span style="font-size:9px;color:#94a3b8">FIX3</span></h1><p>历史80分 + 本地图文辅助20分 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -187,7 +186,7 @@ body{background:var(--bg)!important;color:#0f172a}
         <div style="margin:12px 0 5px;font-size:13px;font-weight:900;color:#111827">① 解玄机诗 / 文字线索</div>
         <div style="margin:0 0 7px;font-size:10px;color:#64748b;line-height:1.45">粘贴本期玄机诗、谜语、提示语。系统自动提取直接点名、禁肖、语义和数字玄机，你不需要先自己分析。</div>
         <textarea class="input" id="clueText" style="margin-top:0" placeholder="补充文字线索，例如：欲钱买狡猾生肖，七九上下有玄机，禁羊。"></textarea>
-        <button class="btn dark" style="width:100%;margin-top:9px" id="parseBtn">解析玄机诗 + 图片线索 + 图片线索</button>
+        <button class="btn dark" style="width:100%;margin-top:9px" id="parseBtn">解析玄机诗 + 图片线索</button>
         <div class="evidence hide" id="evidenceBox">
           <div class="title" style="color:#1d4ed8;margin-bottom:6px">解析出的线索证据</div>
           <div id="evidenceList"></div>
@@ -206,6 +205,7 @@ body{background:var(--bg)!important;color:#0f172a}
 
     <section class="panel" id="panel-result">
       <div class="notice" style="margin-bottom:12px">综合分 = 历史分(最多80) + 图文辅助分(全体共享最多20)。辅助分不是概率或胜率。</div>
+      <div id="resultRuntimeStatus" class="btbox" style="margin-bottom:10px;background:#ecfdf5;border-color:#a7f3d0;color:#047857">计算引擎待启动…</div>
       <div id="algorithmAuditBox" style="margin-bottom:10px;padding:11px;background:white;border:1px solid #e2e8f0;border-radius:13px"></div>
 <div id="decisionMeta" style="margin-bottom:10px;padding:10px 12px;border:1px solid #dbeafe;background:#eff6ff;border-radius:12px;font-size:11px;line-height:1.55;color:#334155"></div>
 <div id="top5"></div>
@@ -241,9 +241,23 @@ const seed=`49:13,50:23,51:1,52:38,53:15,54:48,55:14,56:48,57:23,58:31,59:10,60:
 const defaultHistory=seed.split(',').map(x=>{let[p,n]=x.split(':').map(Number);return{period:p,number:n,zodiac:zodiac(n),type:POULTRY.includes(zodiac(n))?'家禽':'野兽'}}).sort((a,b)=>b.period-a.period);
 let history;
 try { history = JSON.parse(localStorage.getItem('v22_history_2026_full') || 'null'); } catch(e) { history = null; }
-if (!Array.isArray(history) || history.length < 183 || !history.some(x => Number(x.period) === 49)) {
-    history = [...defaultHistory];
+function normalizeHistoryRecords(list){
+  if(!Array.isArray(list)) return [];
+  const seen=new Set(), out=[];
+  list.forEach(x=>{
+    if(!x || typeof x!=='object') return;
+    const period=Number(x.period), number=Number(x.number);
+    if(!Number.isInteger(period)||!Number.isInteger(number)||number<1||number>49) return;
+    if(seen.has(period)) return;
+    seen.add(period);
+    const z=zodiac(number);
+    out.push({period,number,zodiac:z,type:POULTRY.includes(z)?'家禽':'野兽'});
+  });
+  return out.sort((a,b)=>b.period-a.period).slice(0,400);
 }
+history=normalizeHistoryRecords(history);
+if(history.length < 183 || !history.some(x=>Number(x.period)===49)) history=[...defaultHistory];
+
 let weights=Object.fromEntries(Z.map(z=>[z,0]));
 let historyScores={};
 let editingPeriod=null;
@@ -272,7 +286,7 @@ function tabs(id){
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
  document.getElementById('bottomAction').classList.toggle('hide',id==='result');
- if(id==='result') renderResult();
+ if(id==='result') safeRenderResult();
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tabs(b.dataset.tab));
 document.getElementById('goResult').onclick=()=>tabs('result');
@@ -460,12 +474,28 @@ document.getElementById('imageInput').onchange=e=>{
  document.getElementById('ocrStatus').textContent=selectedImageFiles.length?`已选择 ${selectedImageFiles.length} 张图片，可执行本地 OCR。`:'尚未选择图片。';
  updateTagSuggestionsFromText();
 };
+async function ensureTesseractLoaded(){
+  if(window.Tesseract) return true;
+  const status=document.getElementById('ocrStatus');
+  if(status) status.textContent='正在加载本地 OCR 组件…';
+  return await new Promise(resolve=>{
+    const existing=document.getElementById('tesseractRuntimeScript');
+    if(existing){existing.addEventListener('load',()=>resolve(!!window.Tesseract),{once:true});existing.addEventListener('error',()=>resolve(false),{once:true});return;}
+    const s=document.createElement('script');
+    s.id='tesseractRuntimeScript';s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.async=true;
+    s.onload=()=>resolve(!!window.Tesseract);s.onerror=()=>resolve(false);document.head.appendChild(s);
+    setTimeout(()=>resolve(!!window.Tesseract),12000);
+  });
+}
 async function runLocalOCR(){
  if(!selectedImageFiles.length)return alert('请先选择图片');
  const btn=document.getElementById('ocrBtn'),status=document.getElementById('ocrStatus'),out=document.getElementById('ocrText');
  if(!window.Tesseract){
-   status.textContent='OCR 组件未加载成功。你仍可直接在文字框手动输入图片文字，并使用画面标签。';
-   return;
+   const ok=await ensureTesseractLoaded();
+   if(!ok){
+     status.textContent='OCR 组件暂时加载失败。你仍可直接输入图片文字，并使用系统建议/画面标签继续，不影响历史与综合输出。';
+     return;
+   }
  }
  btn.disabled=true; btn.textContent='识别中…'; out.value='';
  try{
@@ -519,14 +549,14 @@ function parseClue(){
  save();
  document.getElementById('evidenceBox').classList.remove('hide');
  document.getElementById('evidenceList').innerHTML=(ev.length?ev:['未识别出结构化线索。可修改 OCR/文字或采用系统建议标签后重试。']).map(x=>'<div class="evi">'+x+'</div>').join('');
- renderAux(); renderResult();
+ renderAux(); safeRenderResult();
 }
 document.getElementById('parseBtn').onclick=parseClue;
-document.getElementById('resetAux').onclick=()=>{weights=Object.fromEntries(Z.map(z=>[z,0]));explicitExcluded=new Set();save();renderAux();renderResult()};
+document.getElementById('resetAux').onclick=()=>{weights=Object.fromEntries(Z.map(z=>[z,0]));explicitExcluded=new Set();save();renderAux();safeRenderResult()};
 function auxScores(){const total=Object.values(weights).reduce((a,b)=>a+b,0);const s={};Z.forEach(z=>s[z]=total?20*weights[z]/total:0);return s}
 function renderAux(){
  const aux=auxScores(); document.getElementById('auxGrid').innerHTML=Z.map(z=>`<div class="zcard"><div class="zname">${z} <span style="float:right;color:#4f46e5">${aux[z].toFixed(1)}</span></div><div class="step"><button data-z="${z}" data-d="-0.5">−</button><span>${weights[z].toFixed(1)}</span><button data-z="${z}" data-d="0.5">＋</button></div></div>`).join('');
- document.querySelectorAll('.step button').forEach(b=>b.onclick=()=>{const z=b.dataset.z,d=Number(b.dataset.d);weights[z]=Math.max(0,+(weights[z]+d).toFixed(1));save();renderAux();renderResult()});
+ document.querySelectorAll('.step button').forEach(b=>b.onclick=()=>{const z=b.dataset.z,d=Number(b.dataset.d);weights[z]=Math.max(0,+(weights[z]+d).toFixed(1));save();renderAux();safeRenderResult()});
 }
 function median(arr){
  if(!arr.length)return null;const a=[...arr].sort((x,y)=>x-y),m=Math.floor(a.length/2);
@@ -719,14 +749,14 @@ function renderAlgorithmAudit(){
  let verdictText='新旧模型各有优劣，暂不自动淘汰任何一方。';
  let verdictColor='#92400e', verdictBg='#fffbeb';
  if(r.verdict==='MULTI_WIN'){
-   verdictText='V22.4.2 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
+   verdictText='V22.4.3 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
    verdictColor='#047857'; verdictBg='#ecfdf5';
  }else if(r.verdict==='LEGACY_WIN'){
    verdictText='旧模型在当前回测口径下占优；新模型不得仅因版本更新而强行替代。';
    verdictColor='#b91c1c'; verdictBg='#fef2f2';
  }
  box.innerHTML=`
-   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.2</div>
+   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.3</div>
    <div style="font-size:10px;color:#64748b;line-height:1.5;margin-bottom:9px">
      使用最近 ${r.tests} 个可回测期逐期训练→预测→揭晓。旧模型与多窗口模型使用完全相同的数据截面，避免偷看未来数据。
    </div>
@@ -746,7 +776,7 @@ function renderAlgorithmAudit(){
    </div>`;
 }
 
-function renderResult(){
+function renderResultCore(){
  // 先渲染核心结果；任何回测/附加模块异常都不得再把整页打空。
  try{
    calcHistory();
@@ -795,46 +825,45 @@ function renderResult(){
      scoreBody.innerHTML=scores.map(x=>`<tr><td><b>${x.z}</b></td><td>${x.h.toFixed(1)}</td><td style="color:#4f46e5;font-weight:800">${x.a.toFixed(1)}</td><td><b>${x.t.toFixed(1)}</b></td></tr>`).join('');
    }
 
-   // 步进回测是附加信息，独立容错。
-   const kb=document.getElementById('killBacktest');
-   try{
-     lastNumberBacktest=runNumberBacktest();
-     lastKillBacktest=runKillBacktest();
-     if(kb) kb.innerHTML=`近 ${lastKillBacktest.tests} 期步进回测：排除组三误杀率 <b>${(lastKillBacktest.falseKillRate*100).toFixed(1)}%</b>（随机排除3/12理论基线25%）。号码模块：Top5生肖命中 <b>${(lastNumberBacktest.zodiacRate*100).toFixed(1)}%</b>；生肖已命中时2码命中特码 <b>${(lastNumberBacktest.conditionalNumRate*100).toFixed(1)}%</b>；同生肖随机2码基线约 <b>${(lastNumberBacktest.randomConditionalBaseline*100).toFixed(1)}%</b>。仅为历史回测。`;
-   }catch(e){
-     console.error('步进回测异常',e);
-     if(kb) kb.innerHTML='回测模块暂不可用；核心综合结果已正常计算。';
-   }
-
-   // A/B算法验收最后执行。失败只显示错误，不再阻断核心结果。
-   try{
-     renderAlgorithmAudit();
-   }catch(e){
-     console.error('A/B算法验收异常',e);
-     const audit=document.getElementById('algorithmAuditBox');
-     if(audit) audit.innerHTML=`<div style="font-size:12px;font-weight:900;color:#b91c1c">算法验收模块暂不可用</div><div style="font-size:10px;color:#64748b;margin-top:4px">核心Top5、号码参考、排除观察和评分表仍可正常使用。错误：${String(e?.message||e)}</div>`;
-   }
+   // 核心结果已经完成。回测与A/B验收延后执行，任何异常不得阻塞页面。
+   setTimeout(()=>{
+     const kb=document.getElementById('killBacktest');
+     try{
+       lastNumberBacktest=runNumberBacktest();
+       lastKillBacktest=runKillBacktest();
+       if(kb) kb.innerHTML=`近 ${lastKillBacktest.tests} 期步进回测：排除组三误杀率 <b>${(lastKillBacktest.falseKillRate*100).toFixed(1)}%</b>（随机排除3/12理论基线25%）。号码模块：Top5生肖命中 <b>${(lastNumberBacktest.zodiacRate*100).toFixed(1)}%</b>；生肖已命中时2码命中特码 <b>${(lastNumberBacktest.conditionalNumRate*100).toFixed(1)}%</b>；同生肖随机2码基线约 <b>${(lastNumberBacktest.randomConditionalBaseline*100).toFixed(1)}%</b>。仅为历史回测。`;
+     }catch(e){console.error('步进回测异常',e);if(kb)kb.textContent='回测模块暂不可用；核心综合结果不受影响。';}
+     try{renderAlgorithmAudit();}
+     catch(e){console.error('A/B算法验收异常',e);const audit=document.getElementById('algorithmAuditBox');if(audit)audit.innerHTML='<div style="font-size:11px;color:#b91c1c">算法验收暂不可用；核心结果不受影响。</div>';}
+   },30);
  }catch(e){
    console.error('综合输出核心异常',e);
    const top5El=document.getElementById('top5');
    if(top5El) top5El.innerHTML=`<div style="padding:12px;border:1px solid #fecaca;background:#fef2f2;border-radius:12px;color:#b91c1c;font-size:11px"><b>综合输出计算发生异常</b><br>${String(e?.message||e)}</div>`;
  }
 }
-function renderAll(){calcHistory();renderHistory();renderAux();renderResult()}
+function safeRenderResult(){
+ const status=document.getElementById('resultRuntimeStatus');
+ if(status){status.style.background='#eff6ff';status.style.borderColor='#bfdbfe';status.style.color='#1d4ed8';status.textContent=`正在计算… 当前历史 ${history.length} 期`;}
+ try{
+   renderResultCore();
+   const top5Count=document.querySelectorAll('#top5 .kpi').length;
+   const rows=document.querySelectorAll('#scoreBody tr').length;
+   if(status){
+     if(top5Count===5 && rows===12){status.style.background='#ecfdf5';status.style.borderColor='#a7f3d0';status.style.color='#047857';status.textContent=`✓ 综合引擎正常 · 历史 ${history.length} 期 · Top5 已生成 · 12生肖明细已生成`;}
+     else {status.style.background='#fff7ed';status.style.borderColor='#fed7aa';status.style.color='#9a3412';status.textContent=`⚠ 核心计算已执行，但渲染不完整：Top5 ${top5Count}/5，明细 ${rows}/12。请截图此提示。`;}
+   }
+ }catch(e){
+   console.error('safeRenderResult fatal',e);
+   if(status){status.style.background='#fef2f2';status.style.borderColor='#fecaca';status.style.color='#b91c1c';status.textContent='✕ 综合引擎异常：'+String(e?.message||e);}
+ }
+}
+function renderAll(){calcHistory();renderHistory();renderAux();safeRenderResult()}
 renderAll();
 window.addEventListener('beforeunload',clearPreviewUrls);
 
 
 function ensureV224UI(){
-  // 顶部品牌
-  const body=document.body;
-  if(!document.getElementById('v224Brand')){
-    const brand=document.createElement('div');
-    brand.id='v224Brand'; brand.className='v224-head';
-    brand.innerHTML=`<div class="v224-head-title">📊 V22.4.2 走势分析系统 <span class="v224-badge">验收版</span></div>
-      <div class="v224-head-sub">多模型 · A/B 回测 · 图文证据 · 独立号码模型</div>`;
-    body.insertBefore(brand,body.firstChild);
-  }
 
   // 历史页统计概览
   const hp=document.getElementById('panel-history');
