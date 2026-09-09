@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22 走势分析系统</title>
+<title>V22.4 走势分析系统</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 <style>
 :root{
@@ -46,6 +46,17 @@ textarea.input{min-height:95px;resize:vertical}
 .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .tagbtn{border:1px solid #dbe3ff;background:#fff;color:#475569;border-radius:999px;padding:7px 10px;font-size:11px}
 .tagbtn.active{background:#4f46e5;color:#fff;border-color:#4f46e5;font-weight:800}
+.suggestbox{margin-top:10px;padding:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px}
+.suggesthead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.suggestchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.suggestchip{border:1px solid #93c5fd;background:#fff;color:#1d4ed8;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:700}
+.suggestreason{font-size:10px;color:#64748b;margin-top:6px;line-height:1.45}
+.killrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.killchip{display:inline-flex;align-items:center;gap:4px;padding:6px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:800}
+.conf-high{background:#fee2e2;color:#b91c1c}.conf-mid{background:#fef3c7;color:#92400e}.conf-low{background:#f1f5f9;color:#64748b}
+.numdetail{font-size:10px;color:#64748b;margin-top:3px;line-height:1.35}
+.btbox{margin-top:8px;padding:8px 10px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:10px;font-size:10px;color:#64748b;line-height:1.45}
+
 .ball{width:34px;height:34px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
 .red{background:#ef4444}.blue{background:#3b82f6}.green{background:#22c55e}
 .mini{font-size:11px;border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:6px 8px}
@@ -70,12 +81,32 @@ textarea.input{min-height:95px;resize:vertical}
 .hide{display:none!important}
 .tag{display:inline-block;background:#eef2ff;color:#4338ca;border-radius:999px;padding:3px 7px;font-size:10px;margin:2px}
 .warn{color:#b45309}.ok{color:#047857}
+
+:root{
+  --navy:#102238;--blue:#2563eb;--violet:#5b4df5;--green:#059669;
+  --line:#dbe4ef;--muted:#64748b;--card:#ffffff;--bg:#f3f7fb;
+}
+body{background:var(--bg)!important;color:#0f172a}
+.card,.panel-card{border-radius:16px!important;border:1px solid var(--line)!important;box-shadow:0 4px 14px rgba(15,23,42,.06)!important}
+.v224-head{background:linear-gradient(135deg,#102238,#183653);color:white;padding:14px 15px 12px}
+.v224-head-title{font-size:17px;font-weight:900;letter-spacing:.2px}
+.v224-head-sub{font-size:10px;color:#cbd5e1;margin-top:3px}
+.v224-badge{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:#dc2626;color:#fff;font-size:9px;font-weight:900;margin-left:6px}
+.v224-section-title{font-size:14px;font-weight:900;color:#172554;display:flex;align-items:center;gap:7px}
+.v224-note{font-size:10px;color:#64748b;line-height:1.55}
+.v224-audit{background:linear-gradient(180deg,#fff,#f8fbff);border:1px solid #cfe0f5;border-radius:15px;padding:12px}
+.v224-status{border-radius:11px;padding:9px 10px;font-size:10px;line-height:1.55}
+.v224-pill{display:inline-block;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:800}
+@media(max-width:480px){
+  .v224-head{padding-top:max(14px,env(safe-area-inset-top))}
+  #algorithmAuditBox{font-size:10px}
+}
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22</span></h1><p>历史80分 + 本地图文辅助20分 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4</span></h1><p>历史80分 + 本地图文辅助20分 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -140,10 +171,23 @@ textarea.input{min-height:95px;resize:vertical}
           <div class="title" style="font-size:13px">画面标签（由你确认）</div>
           <div class="sub">图片本身的隐喻不能靠免费 OCR 判断，所以用人工标签把画面证据真正接入辅助模型。</div>
           <div class="tags" id="imageTags"></div>
+          <div class="suggestbox" id="tagSuggestionBox">
+            <div class="suggesthead">
+              <div>
+                <div class="title" style="font-size:12px;color:#1d4ed8">系统建议你确认的标签</div>
+                <div class="sub">根据 OCR 文字与图片主色自动提示；只确认你肉眼确实看得到的客观元素，不需要自己解谜。</div>
+              </div>
+              <button type="button" class="mini" id="applySuggestedTags">采用建议</button>
+            </div>
+            <div class="suggestchips" id="suggestedTags"><span class="sub">上传图片并完成 OCR 后，这里会给出建议。</span></div>
+            <div class="suggestreason" id="suggestedTagReason">例如：识别到“将、战、军”会建议「将军」；图片主色明显偏红会建议「红色」。</div>
+          </div>
         </div>
 
-        <textarea class="input" id="clueText" style="margin-top:10px" placeholder="补充文字线索，例如：欲钱买狡猾生肖，七九上下有玄机，禁羊。"></textarea>
-        <button class="btn dark" style="width:100%;margin-top:9px" id="parseBtn">确认并解析全部线索</button>
+        <div style="margin:12px 0 5px;font-size:13px;font-weight:900;color:#111827">① 解玄机诗 / 文字线索</div>
+        <div style="margin:0 0 7px;font-size:10px;color:#64748b;line-height:1.45">粘贴本期玄机诗、谜语、提示语。系统自动提取直接点名、禁肖、语义和数字玄机，你不需要先自己分析。</div>
+        <textarea class="input" id="clueText" style="margin-top:0" placeholder="补充文字线索，例如：欲钱买狡猾生肖，七九上下有玄机，禁羊。"></textarea>
+        <button class="btn dark" style="width:100%;margin-top:9px" id="parseBtn">解析玄机诗 + 图片线索 + 图片线索</button>
         <div class="evidence hide" id="evidenceBox">
           <div class="title" style="color:#1d4ed8;margin-bottom:6px">解析出的线索证据</div>
           <div id="evidenceList"></div>
@@ -162,9 +206,18 @@ textarea.input{min-height:95px;resize:vertical}
 
     <section class="panel" id="panel-result">
       <div class="notice" style="margin-bottom:12px">综合分 = 历史分(最多80) + 图文辅助分(全体共享最多20)。辅助分不是概率或胜率。</div>
-      <div id="top5"></div>
+      <div id="algorithmAuditBox" style="margin-bottom:10px;padding:11px;background:white;border:1px solid #e2e8f0;border-radius:13px"></div>
+<div id="decisionMeta" style="margin-bottom:10px;padding:10px 12px;border:1px solid #dbeafe;background:#eff6ff;border-radius:12px;font-size:11px;line-height:1.55;color:#334155"></div>
+<div id="top5"></div>
       <div class="card">
-        <div class="row between"><div class="title">低评分组三肖</div><div id="kill3" style="font-weight:800;color:#2563eb"></div></div>
+        <div class="row between" style="align-items:flex-start">
+  <div>
+    <div class="title">独立排除观察</div>
+    <div class="sub">不是简单取总分最后三名；仅表示历史形态排除证据，不代表一定不会出现。</div>
+  </div>
+  <div id="kill3" class="killrow" style="justify-content:flex-end"></div>
+</div>
+<div id="killBacktest" class="btbox"></div>
       </div>
       <div class="card">
         <div class="title" style="margin-bottom:8px">12生肖评分明细</div>
@@ -196,14 +249,24 @@ let historyScores={};
 let editingPeriod=null;
 let selectedImageFiles=[];
 let selectedImageTags=new Set();
+let suggestedImageTags=new Set();
+let suggestedTagReasons=[];
 let currentObjectUrls=[];
+let explicitExcluded=new Set();
+let lastNumberBacktest=null;
+let lastKillBacktest=null;
 try {
   const savedWeights=JSON.parse(localStorage.getItem('v22_aux_weights')||'null');
   if(savedWeights && typeof savedWeights==='object') Z.forEach(z=>weights[z]=Math.max(0,Number(savedWeights[z])||0));
 } catch(e) {}
+try {
+  const ex=JSON.parse(localStorage.getItem('v22_explicit_excluded')||'null');
+  if(Array.isArray(ex)) explicitExcluded=new Set(ex.filter(z=>Z.includes(z)));
+} catch(e) {}
 function save(){
   localStorage.setItem('v22_history_2026_full',JSON.stringify(history));
   localStorage.setItem('v22_aux_weights',JSON.stringify(weights));
+  localStorage.setItem('v22_explicit_excluded',JSON.stringify([...explicitExcluded]));
 }
 function tabs(id){
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
@@ -269,12 +332,30 @@ document.getElementById('bulkImportBtn').onclick=()=>{
  save(); renderAll(); document.getElementById('bulkText').value='';
  alert('成功导入 '+c+' 条'+(bad.length?'；失败行：'+bad.join(','):''));
 };
-document.getElementById('resetBtn').onclick=()=>{if(confirm('恢复内置049期～231期，共183期历史数据？')){history=[...defaultHistory];weights=Object.fromEntries(Z.map(z=>[z,0]));clearEditMode();save();renderAll();tabs('history')}};
+document.getElementById('resetBtn').onclick=()=>{if(confirm('恢复内置049期～231期，共183期历史数据？')){history=[...defaultHistory];weights=Object.fromEntries(Z.map(z=>[z,0]));explicitExcluded=new Set();clearEditMode();save();renderAll();tabs('history')}};
+function historyFeatureRow(z,hist=history){
+ const windows=[5,10,20,40,80];
+ const counts=Object.fromEntries(windows.map(w=>[w,hist.slice(0,w).filter(x=>x.zodiac===z).length]));
+ let omission=hist.findIndex(h=>h.zodiac===z); omission=omission<0?hist.length:omission;
+ const longBase=Math.max(1,Math.min(80,hist.length))/12;
+ // 多窗口只衡量“相对活跃度/偏离”，不把遗漏当作必然回归。
+ const shortRate=(counts[5]/5)*12, midRate=(counts[20]/20)*12, longRate=(counts[80]/Math.max(1,Math.min(80,hist.length)))*12;
+ let s=40;
+ s += Math.max(-8,Math.min(8,(midRate-1)*6));
+ s += Math.max(-5,Math.min(5,(longRate-1)*4));
+ if(omission>=10&&omission<20)s+=4;
+ else if(omission>=20&&omission<35)s+=6;
+ else if(omission>=35)s+=3; // 极端长遗漏不继续无限加分
+ if(counts[5]>=2)s-=8;
+ if(counts[10]>=3)s-=5;
+ const momentum=(shortRate-midRate);
+ s += Math.max(-4,Math.min(4,momentum*2));
+ s=Math.max(10,Math.min(80,s));
+ const reason=`5/10/20/40/80期 ${counts[5]}/${counts[10]}/${counts[20]}/${counts[40]}/${counts[80]} · 遗漏${omission}`;
+ return {score:Math.round(s*10)/10,reason,counts,omission,shortRate,midRate,longRate};
+}
 function calcHistory(){
- const recent=history.slice(0,5),allBeast=recent.length===5&&recent.every(x=>x.type==='野兽'),allP=recent.length===5&&recent.every(x=>x.type==='家禽');
- Z.forEach(z=>{let s=40,r=[];let om=history.findIndex(h=>h.zodiac===z);om=om<0?history.length:om;if(om>=40){s+=25;r.push('大冷')}else if(om>=20){s+=15;r.push('深冷')}else if(om>=10){s+=10;r.push('均值')}
- const c=recent.filter(x=>x.zodiac===z).length;if(c>=2){s-=15;r.push('过热')}const t=POULTRY.includes(z)?'家禽':'野兽';if(allBeast&&t==='家禽'){s+=15;r.push('对冲')}if(allP&&t==='野兽'){s+=15;r.push('对冲')}
- historyScores[z]={score:Math.max(10,Math.min(80,s)),reason:r.join('+')||'常规'};});
+ Z.forEach(z=>historyScores[z]=historyFeatureRow(z,history));
 }
 function renderHistory(){
  if(editingPeriod===null) document.getElementById('nextPeriod').textContent=((history[0]?.period||0)+1)+'期';
@@ -308,6 +389,68 @@ function renderImageTags(){
    const t=btn.dataset.imgtag; selectedImageTags.has(t)?selectedImageTags.delete(t):selectedImageTags.add(t); renderImageTags();
  });
 }
+const TAG_HINT_RULES=[
+ {tag:'家禽',keys:['家禽','鸡','鸭','鹅','牛','羊','猪']},
+ {tag:'野兽',keys:['野兽','虎','豹','狼','猴','蛇']},
+ {tag:'女性',keys:['女','女子','女人','嫦娥','姑娘','佳人','娘','美女']},
+ {tag:'将军',keys:['将','军','将军','战','兵','甲','刀','枪','剑']},
+ {tag:'狡猾',keys:['狡猾','机灵','奸','诡','偷','骗']},
+ {tag:'忠诚',keys:['忠','忠诚','守','看门','护主']},
+ {tag:'山水',keys:['山','水','江','河','湖','海','峰','岭','瀑']},
+ {tag:'月亮',keys:['月','月亮','明月','月宫','嫦娥']},
+ {tag:'人物',keys:['人','为人','男子','女子','老翁','童子','和尚','仙','将军']}
+];
+function renderSuggestedTags(){
+ const box=document.getElementById('suggestedTags'),reason=document.getElementById('suggestedTagReason');
+ if(!box||!reason)return;
+ if(!suggestedImageTags.size){
+   box.innerHTML='<span class="sub">暂未生成标签建议。完成 OCR 后会自动更新。</span>';
+   reason.textContent='建议只确认你能直接看见的元素，不要自行解释寓意。';
+   return;
+ }
+ box.innerHTML=[...suggestedImageTags].map(t=>`<span class="suggestchip">${t}</span>`).join('');
+ reason.innerHTML=suggestedTagReasons.map(x=>'• '+x).join('<br>');
+}
+async function getDominantColorSuggestions(files){
+ const votes={红色:0,蓝色:0,绿色:0};
+ for(const file of files){
+   try{
+     const bmp=await createImageBitmap(file);
+     const size=48,cv=document.createElement('canvas');cv.width=size;cv.height=size;
+     const ctx=cv.getContext('2d',{willReadFrequently:true});ctx.drawImage(bmp,0,0,size,size);
+     const data=ctx.getImageData(0,0,size,size).data;let r=0,g=0,b=0,c=0;
+     for(let i=0;i<data.length;i+=16){
+       const a=data[i+3]; if(a<100)continue;
+       const mx=Math.max(data[i],data[i+1],data[i+2]),mn=Math.min(data[i],data[i+1],data[i+2]);
+       if(mx-mn<28)continue;
+       r+=data[i];g+=data[i+1];b+=data[i+2];c++;
+     }
+     bmp.close?.();
+     if(c){
+       r/=c;g/=c;b/=c;
+       if(r>g*1.16&&r>b*1.16)votes.红色++;
+       else if(b>r*1.12&&b>g*1.08)votes.蓝色++;
+       else if(g>r*1.10&&g>b*1.06)votes.绿色++;
+     }
+   }catch(e){console.warn('color sample skipped',e)}
+ }
+ Object.entries(votes).forEach(([tag,v])=>{if(v>0){suggestedImageTags.add(tag);suggestedTagReasons.push(`图片主色取样偏${tag.replace('色','')}，建议确认「${tag}」`)}})
+ renderSuggestedTags();
+}
+function updateTagSuggestionsFromText(){
+ suggestedImageTags=new Set(); suggestedTagReasons=[];
+ const text=((document.getElementById('ocrText')?.value||'')+' '+(document.getElementById('clueText')?.value||'')).trim();
+ TAG_HINT_RULES.forEach(rule=>{
+   const hit=rule.keys.find(k=>text.includes(k));
+   if(hit){suggestedImageTags.add(rule.tag);suggestedTagReasons.push(`文字/OCR 出现「${hit}」，建议核对画面是否有「${rule.tag}」`)}
+ });
+ getDominantColorSuggestions(selectedImageFiles);
+}
+document.getElementById('applySuggestedTags').onclick=()=>{
+ if(!suggestedImageTags.size)return alert('当前没有可采用的标签建议');
+ suggestedImageTags.forEach(t=>selectedImageTags.add(t));
+ renderImageTags();
+};
 function clearPreviewUrls(){currentObjectUrls.forEach(u=>URL.revokeObjectURL(u));currentObjectUrls=[]}
 document.getElementById('imageInput').onchange=e=>{
  clearPreviewUrls();
@@ -315,6 +458,7 @@ document.getElementById('imageInput').onchange=e=>{
  const box=document.getElementById('previewBox');box.innerHTML='';
  selectedImageFiles.forEach(f=>{const u=URL.createObjectURL(f);currentObjectUrls.push(u);const im=document.createElement('img');im.src=u;box.appendChild(im)});
  document.getElementById('ocrStatus').textContent=selectedImageFiles.length?`已选择 ${selectedImageFiles.length} 张图片，可执行本地 OCR。`:'尚未选择图片。';
+ updateTagSuggestionsFromText();
 };
 async function runLocalOCR(){
  if(!selectedImageFiles.length)return alert('请先选择图片');
@@ -335,23 +479,26 @@ async function runLocalOCR(){
    }
    out.value=texts.filter(Boolean).join('\n');
    status.textContent=out.value?'识别完成。请检查并修改下方文字，然后点击“确认并解析全部线索”。':'OCR 完成，但未识别出清晰文字；可手动输入或使用画面标签。';
+   updateTagSuggestionsFromText();
  }catch(err){
    console.error('OCR failed',err);
    status.textContent='OCR 识别失败。图片不会丢失；可手动输入图片文字并使用画面标签继续。';
  }finally{btn.disabled=false;btn.textContent='识别图片文字'}
 }
 document.getElementById('ocrBtn').onclick=runLocalOCR;
-renderImageTags();
+document.getElementById('ocrText').addEventListener('input',()=>setTimeout(updateTagSuggestionsFromText,120));
+document.getElementById('clueText').addEventListener('input',()=>setTimeout(updateTagSuggestionsFromText,120));
+renderImageTags();renderSuggestedTags();
 function parseClue(){
  const manual=document.getElementById('clueText').value.trim();
  const ocr=document.getElementById('ocrText').value.trim();
  const t=[manual,ocr].filter(Boolean).join('\n');
  const ev=[]; weights=Object.fromEntries(Z.map(z=>[z,0]));
- const excluded=[];
- Z.forEach(z=>{if(t.includes('禁'+z)||t.includes(z+'禁')||t.includes('排除'+z)||t.includes('不要'+z)||t.includes('杀'+z))excluded.push(z)});
- if(excluded.length)ev.push('明确排除：'+excluded.join('、'));
- Z.forEach(z=>{if(t.includes(z)&&!excluded.includes(z)){weights[z]+=3;ev.push('直接点名：'+z)}});
- rules.forEach(r=>r.keys.forEach(k=>{if(t.includes(k)){const valid=r.zs.filter(z=>!excluded.includes(z));valid.forEach(z=>weights[z]+=1);ev.push('文字语义「'+k+'」 → '+valid.join('、'))}}));
+ explicitExcluded=new Set();
+ Z.forEach(z=>{if(t.includes('禁'+z)||t.includes(z+'禁')||t.includes('排除'+z)||t.includes('不要'+z)||t.includes('杀'+z))explicitExcluded.add(z)});
+ if(explicitExcluded.size)ev.push('【强证据·排除】明确排除：'+[...explicitExcluded].join('、'));
+ Z.forEach(z=>{if(t.includes(z)&&!explicitExcluded.has(z)){weights[z]+=3;ev.push('【强证据】直接点名：'+z+'（原始权重 +3）')}});
+ rules.forEach(r=>r.keys.forEach(k=>{if(t.includes(k)){const valid=r.zs.filter(z=>!explicitExcluded.has(z));valid.forEach(z=>weights[z]+=0.8);ev.push('【中证据】文字语义「'+k+'」 → '+valid.join('、')+'（每肖 +0.8）')}}));
  const m=t.match(/([一二三四五六七八九1-9])([一二三四五六七八九1-9]).{0,4}?(上下|左右|合|相加|相减|玄机)/);
  if(m){
    const M={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
@@ -359,52 +506,337 @@ function parseClue(){
    let nums=[a+b,Math.abs(a-b)].filter(Boolean);
    if(/上下|左右/.test(m[3]))nums=[...nums,...nums.flatMap(n=>[n-1,n+1])];
    nums=[...new Set(nums.map(n=>((n-1)%49+49)%49+1))];
-   const zs=[...new Set(nums.map(n=>zodiac(n)))].filter(z=>!excluded.includes(z));
-   zs.forEach(z=>weights[z]+=2); ev.push('数字「'+m[0]+'」 → '+nums.join('/')+' → '+zs.join('、'));
+   const zs=[...new Set(nums.map(n=>zodiac(n)))].filter(z=>!explicitExcluded.has(z));
+   zs.forEach(z=>weights[z]+=1.6); ev.push('【中强证据】数字「'+m[0]+'」 → '+nums.join('/')+' → '+zs.join('、')+'（每肖 +1.6）');
  }
  selectedImageTags.forEach(tag=>{
    const def=IMAGE_TAG_DEFS.find(x=>x.name===tag); if(!def)return;
-   const valid=def.zs.filter(z=>!excluded.includes(z));
-   if(valid.length){valid.forEach(z=>weights[z]+=1);ev.push('图片人工标签「'+tag+'」 → '+valid.join('、'))}
-   else ev.push('图片观察标签「'+tag+'」：仅记录画面特征，不自动映射生肖');
+   const valid=def.zs.filter(z=>!explicitExcluded.has(z));
+   if(valid.length){valid.forEach(z=>weights[z]+=0.5);ev.push('【弱证据·人工确认】图片标签「'+tag+'」 → '+valid.join('、')+'（每肖 +0.5）')}
+   else ev.push('【观察证据】图片标签「'+tag+'」：只记录，不直接加生肖分');
  });
- excluded.forEach(z=>weights[z]=0);
+ explicitExcluded.forEach(z=>weights[z]=0);
  save();
  document.getElementById('evidenceBox').classList.remove('hide');
- document.getElementById('evidenceList').innerHTML=(ev.length?ev:['未识别出结构化线索。可修改 OCR/文字或选择画面标签后重试。']).map(x=>'<div class="evi">'+x+'</div>').join('');
+ document.getElementById('evidenceList').innerHTML=(ev.length?ev:['未识别出结构化线索。可修改 OCR/文字或采用系统建议标签后重试。']).map(x=>'<div class="evi">'+x+'</div>').join('');
  renderAux(); renderResult();
 }
 document.getElementById('parseBtn').onclick=parseClue;
-document.getElementById('resetAux').onclick=()=>{weights=Object.fromEntries(Z.map(z=>[z,0]));save();renderAux();renderResult()};
+document.getElementById('resetAux').onclick=()=>{weights=Object.fromEntries(Z.map(z=>[z,0]));explicitExcluded=new Set();save();renderAux();renderResult()};
 function auxScores(){const total=Object.values(weights).reduce((a,b)=>a+b,0);const s={};Z.forEach(z=>s[z]=total?20*weights[z]/total:0);return s}
 function renderAux(){
  const aux=auxScores(); document.getElementById('auxGrid').innerHTML=Z.map(z=>`<div class="zcard"><div class="zname">${z} <span style="float:right;color:#4f46e5">${aux[z].toFixed(1)}</span></div><div class="step"><button data-z="${z}" data-d="-0.5">−</button><span>${weights[z].toFixed(1)}</span><button data-z="${z}" data-d="0.5">＋</button></div></div>`).join('');
  document.querySelectorAll('.step button').forEach(b=>b.onclick=()=>{const z=b.dataset.z,d=Number(b.dataset.d);weights[z]=Math.max(0,+(weights[z]+d).toFixed(1));save();renderAux();renderResult()});
 }
-function getReferenceNumbers(zodiacName){
- const nums=[]; for(let n=1;n<=49;n++) if(zodiac(n)===zodiacName) nums.push(n);
- const ranked=nums.map(n=>{
-   const idx=history.findIndex(h=>Number(h.number)===n);
-   const omission=idx===-1?history.length:idx;
-   const recent30=history.slice(0,30).filter(h=>Number(h.number)===n).length;
-   const score=omission + (recent30===0?4:0) - recent30*2;
-   return {num:n,omission,recent30,score};
- }).sort((a,b)=>b.score-a.score || b.omission-a.omission || a.num-b.num);
- return ranked.slice(0,2);
+function median(arr){
+ if(!arr.length)return null;const a=[...arr].sort((x,y)=>x-y),m=Math.floor(a.length/2);
+ return a.length%2?a[m]:(a[m-1]+a[m])/2;
 }
+function numberFeatureScore(n, hist=history){
+ const indices=[];hist.forEach((h,i)=>{if(Number(h.number)===n)indices.push(i)});
+ const omission=indices.length?indices[0]:hist.length;
+ const c10=hist.slice(0,10).filter(h=>Number(h.number)===n).length;
+ const c20=hist.slice(0,20).filter(h=>Number(h.number)===n).length;
+ const c40=hist.slice(0,40).filter(h=>Number(h.number)===n).length;
+ const c80=hist.slice(0,80).filter(h=>Number(h.number)===n).length;
+ const gaps=[];for(let i=1;i<indices.length;i++)gaps.push(indices[i]-indices[i-1]);
+ const medGap=median(gaps) ?? 24;
+ const ratio=omission/Math.max(6,medGap);
+ // 独立号码形态分：间隔位置 + 多窗口频率稳定度 + 近期过热惩罚。
+ // 分值仅用于同生肖内部排序，不是概率。
+ const intervalFit=Math.max(0,45-Math.abs(ratio-1.15)*28);
+ const longExpected=Math.max(0.2,Math.min(80,hist.length)/49);
+ const freqStability=Math.max(0,25-Math.abs(c80-longExpected)*7);
+ const midActivity=Math.min(18,c40*5+c20*2);
+ const hotPenalty=(c10>=2?18:0)+(omission===0?10:0);
+ const score=Math.max(0,Math.min(100,intervalFit+freqStability+midActivity-hotPenalty));
+ return {num:n,score,omission,c10,c20,c40,c80,medGap,omissionRatio:ratio};
+}
+function getReferenceNumbers(zodiacName,hist=history){
+ const nums=[];for(let n=1;n<=49;n++)if(zodiac(n)===zodiacName)nums.push(n);
+ return nums.map(n=>numberFeatureScore(n,hist)).sort((a,b)=>b.score-a.score||b.omission-a.omission||a.num-b.num).slice(0,2);
+}
+
+function currentOmissionForZodiac(z,hist=history){
+ const i=hist.findIndex(h=>h.zodiac===z);return i<0?hist.length:i;
+}
+function killEvidence(z,scoreRow,hist=history){
+ const om=currentOmissionForZodiac(z,hist);
+ const c3=hist.slice(0,3).filter(h=>h.zodiac===z).length;
+ const c8=hist.slice(0,8).filter(h=>h.zodiac===z).length;
+ const c20=hist.slice(0,20).filter(h=>h.zodiac===z).length;
+ let k=0,reasons=[];
+ // 最近刚开/偏热只作为“历史形态排除证据”，不当作概率规律
+ if(om===0){k+=24;reasons.push('刚开')}
+ else if(om<=2){k+=14;reasons.push('近期开')}
+ if(c3>=2){k+=20;reasons.push('3期偏热')}
+ if(c8>=2){k+=12;reasons.push('8期集中')}
+ if(c20>=3){k+=8;reasons.push('20期偏热')}
+ k+=Math.max(0,(48-scoreRow.h)*0.75);
+ if(explicitExcluded.has(z)){k+=35;reasons.push('图文明排')}
+ return {z,score:k,reasons,om,c3,c8,c20};
+}
+function getKillCandidates(scores,hist=history){
+ const rows=scores.map(s=>killEvidence(s.z,s,hist)).sort((a,b)=>b.score-a.score);
+ return rows.slice(0,3).map((r,i)=>{
+   const conf=r.score>=50?'高':r.score>=34?'中':'低';
+   return {...r,confidence:conf};
+ });
+}
+
+function calcHistoryLegacyFor(hist){
+ const hs={};
+ const recent5=hist.slice(0,5);
+ const allBeast=recent5.length===5&&recent5.every(h=>h.type==='野兽');
+ const allPoultry=recent5.length===5&&recent5.every(h=>h.type==='家禽');
+ Z.forEach(z=>{
+   let score=40;
+   let omission=hist.findIndex(h=>h.zodiac===z);
+   omission=omission<0?hist.length:omission;
+   if(omission>=40)score+=25;
+   else if(omission>=20)score+=15;
+   else if(omission>=10)score+=10;
+   const count5=recent5.filter(h=>h.zodiac===z).length;
+   if(count5>=2)score-=15;
+   const zType=getZodiacInfo(
+     Array.from({length:49},(_,i)=>i+1).find(n=>zodiac(n)===z)||1,
+     2026
+   ).type;
+   if(allBeast&&zType==='家禽')score+=15;
+   if(allPoultry&&zType==='野兽')score+=15;
+   hs[z]=Math.max(10,Math.min(80,score));
+ });
+ return hs;
+}
+
+function calcHistoryFor(hist){
+ const hs={}; Z.forEach(z=>hs[z]=historyFeatureRow(z,hist).score); return hs;
+}
+function runNumberBacktest(maxSteps=120){
+ let zodiacHits=0,numHits=0,eligible=0,randomConditionalSum=0;const chronological=[...history].sort((a,b)=>a.period-b.period);
+ const start=Math.max(45,chronological.length-maxSteps);
+ for(let i=start;i<chronological.length;i++){
+   const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period);
+   const actual=chronological[i];
+   const hs=calcHistoryFor(train);
+   const ranked=Z.map(z=>({z,h:hs[z]})).sort((a,b)=>b.h-a.h);
+   const top5=ranked.slice(0,5).map(x=>x.z);
+   eligible++;
+   if(top5.includes(actual.zodiac)){
+     zodiacHits++;
+     const pool=[];for(let n=1;n<=49;n++)if(zodiac(n)===actual.zodiac)pool.push(n);
+     randomConditionalSum+=Math.min(1,2/pool.length);
+     const refs=getReferenceNumbers(actual.zodiac,train).map(x=>x.num);
+     if(refs.includes(actual.number))numHits++;
+   }
+ }
+ return {eligible,zodiacHits,numHits,zodiacRate:eligible?zodiacHits/eligible:0,conditionalNumRate:zodiacHits?numHits/zodiacHits:0,overallNumRate:eligible?numHits/eligible:0,randomConditionalBaseline:zodiacHits?randomConditionalSum/zodiacHits:0};
+}
+function runKillBacktest(maxSteps=120){
+ let tests=0,misKills=0;const chronological=[...history].sort((a,b)=>a.period-b.period);
+ const start=Math.max(45,chronological.length-maxSteps);
+ for(let i=start;i<chronological.length;i++){
+   const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period),actual=chronological[i],hs=calcHistoryFor(train);
+   const rows=Z.map(z=>({z,h:hs[z],a:0,t:hs[z]}));
+   const kills=getKillCandidates(rows,train).map(x=>x.z);
+   tests++;if(kills.includes(actual.zodiac))misKills++;
+ }
+ return {tests,misKills,falseKillRate:tests?misKills/tests:0};
+}
+
+function buildDecisionMeta(scores){
+ const sorted=[...scores].sort((a,b)=>b.t-a.t);
+ const gap=sorted.length>1?sorted[0].t-sorted[1].t:0;
+ const auxTotal=sorted.reduce((s,x)=>s+x.a,0);
+ const conflicts=sorted.filter(x=>{
+   const hRank=[...sorted].sort((a,b)=>b.h-a.h).findIndex(v=>v.z===x.z);
+   const aRank=[...sorted].sort((a,b)=>b.a-a.a).findIndex(v=>v.z===x.z);
+   return x.a>=2.5 && hRank>=7 && aRank<=2;
+ }).map(x=>x.z);
+ let confidence='低';
+ if(history.length>=120 && gap>=4)confidence='高';
+ else if(history.length>=60 && gap>=1.5)confidence='中';
+ return {gap,confidence,conflicts,auxTotal};
+}
+
+
+function runAlgorithmABBacktest(maxSteps=120){
+ const chronological=[...history].sort((a,b)=>a.period-b.period);
+ const start=Math.max(45,chronological.length-maxSteps);
+ const out={
+   tests:0,
+   legacy:{top5:0,top3:0,killFalse:0,brier:0},
+   multi:{top5:0,top3:0,killFalse:0,brier:0}
+ };
+ for(let i=start;i<chronological.length;i++){
+   const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period);
+   const actual=chronological[i];
+   const models=[
+     ['legacy',calcHistoryLegacyFor(train)],
+     ['multi',calcHistoryFor(train)]
+   ];
+   out.tests++;
+   models.forEach(([key,hs])=>{
+     const ranked=Z.map(z=>({z,s:hs[z]})).sort((a,b)=>b.s-a.s);
+     const top5=ranked.slice(0,5).map(x=>x.z);
+     const top3=ranked.slice(0,3).map(x=>x.z);
+     const kill3=ranked.slice(-3).map(x=>x.z);
+     if(top5.includes(actual.zodiac))out[key].top5++;
+     if(top3.includes(actual.zodiac))out[key].top3++;
+     if(kill3.includes(actual.zodiac))out[key].killFalse++;
+     // 归一化分数仅用于比较排序校准误差，不声称为真实概率。
+     const min=Math.min(...ranked.map(x=>x.s)), max=Math.max(...ranked.map(x=>x.s));
+     const den=Math.max(1,max-min);
+     ranked.forEach(x=>{
+       const pseudo=(x.s-min)/den;
+       const y=x.z===actual.zodiac?1:0;
+       out[key].brier+=(pseudo-y)*(pseudo-y)/12;
+     });
+   });
+ }
+ ['legacy','multi'].forEach(k=>{
+   const m=out[k], n=Math.max(1,out.tests);
+   m.top5Rate=m.top5/n;
+   m.top3Rate=m.top3/n;
+   m.killFalseRate=m.killFalse/n;
+   m.brier=m.brier/n;
+ });
+ const delta={
+   top5:out.multi.top5Rate-out.legacy.top5Rate,
+   top3:out.multi.top3Rate-out.legacy.top3Rate,
+   killFalse:out.multi.killFalseRate-out.legacy.killFalseRate,
+   brier:out.multi.brier-out.legacy.brier
+ };
+ let verdict='MIXED';
+ if(delta.top5>0 && delta.killFalse<=0)verdict='MULTI_WIN';
+ else if(delta.top5<0 && delta.killFalse>=0)verdict='LEGACY_WIN';
+ return { ...out, delta, verdict };
+}
+
+function renderAlgorithmAudit(){
+ const box=document.getElementById('algorithmAuditBox');
+ if(!box)return;
+ const r=runAlgorithmABBacktest(120);
+ const pct=v=>(v*100).toFixed(1)+'%';
+ const sign=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'pp';
+ let verdictText='新旧模型各有优劣，暂不自动淘汰任何一方。';
+ let verdictColor='#92400e', verdictBg='#fffbeb';
+ if(r.verdict==='MULTI_WIN'){
+   verdictText='V22.4 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
+   verdictColor='#047857'; verdictBg='#ecfdf5';
+ }else if(r.verdict==='LEGACY_WIN'){
+   verdictText='旧模型在当前回测口径下占优；新模型不得仅因版本更新而强行替代。';
+   verdictColor='#b91c1c'; verdictBg='#fef2f2';
+ }
+ box.innerHTML=`
+   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4</div>
+   <div style="font-size:10px;color:#64748b;line-height:1.5;margin-bottom:9px">
+     使用最近 ${r.tests} 个可回测期逐期训练→预测→揭晓。旧模型与多窗口模型使用完全相同的数据截面，避免偷看未来数据。
+   </div>
+   <div style="display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:1px;background:#e2e8f0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;font-size:10px">
+     <div style="background:#f8fafc;padding:7px;font-weight:800">指标</div><div style="background:#f8fafc;padding:7px;text-align:center;font-weight:800">旧模型</div><div style="background:#eef2ff;padding:7px;text-align:center;font-weight:900;color:#4338ca">多窗口</div>
+     <div style="background:white;padding:7px">Top5生肖命中</div><div style="background:white;padding:7px;text-align:center">${pct(r.legacy.top5Rate)}</div><div style="background:white;padding:7px;text-align:center;font-weight:800">${pct(r.multi.top5Rate)}</div>
+     <div style="background:white;padding:7px">Top3生肖命中</div><div style="background:white;padding:7px;text-align:center">${pct(r.legacy.top3Rate)}</div><div style="background:white;padding:7px;text-align:center;font-weight:800">${pct(r.multi.top3Rate)}</div>
+     <div style="background:white;padding:7px">倒数3肖误杀率↓</div><div style="background:white;padding:7px;text-align:center">${pct(r.legacy.killFalseRate)}</div><div style="background:white;padding:7px;text-align:center;font-weight:800">${pct(r.multi.killFalseRate)}</div>
+     <div style="background:white;padding:7px">排序校准误差↓</div><div style="background:white;padding:7px;text-align:center">${r.legacy.brier.toFixed(3)}</div><div style="background:white;padding:7px;text-align:center;font-weight:800">${r.multi.brier.toFixed(3)}</div>
+   </div>
+   <div style="margin-top:8px;padding:8px 9px;border-radius:9px;background:${verdictBg};color:${verdictColor};font-size:10px;line-height:1.5">
+     <b>验收结论：</b>${verdictText}<br>
+     Top5变化 ${sign(r.delta.top5)}；误杀率变化 ${sign(r.delta.killFalse)}（负数更好）。
+   </div>
+   <div style="margin-top:7px;font-size:9px;color:#94a3b8;line-height:1.45">
+     注：历史回测只能用于比较模型，不证明未来开奖结果可预测。若新模型不能持续优于旧模型，应保留或回退旧模型。
+   </div>`;
+}
+
 function renderResult(){
+ renderAlgorithmAudit();
  calcHistory();const aux=auxScores();const scores=Z.map(z=>({z,h:historyScores[z].score,a:aux[z],t:historyScores[z].score+aux[z],r:historyScores[z].reason})).sort((x,y)=>y.t-x.t);
+ const meta=buildDecisionMeta(scores);
+ document.getElementById('decisionMeta').innerHTML=`<b>本期模型状态：${meta.confidence}区分度</b> ｜ Top1/Top2差 ${meta.gap.toFixed(1)} 分`+
+   (meta.conflicts.length?`<br><span style="color:#b45309"><b>⚠ 历史/图文冲突：</b>${meta.conflicts.join('、')}。建议把这些生肖视为争议项，不机械追分。</span>`:`<br><span style="color:#047857">历史层与图文层暂无明显强冲突。</span>`)+
+   `<br><span style="color:#64748b">置信度只表示模型内部区分程度，不代表中奖概率。</span>`;
  document.getElementById('top5').innerHTML=scores.slice(0,5).map((x,i)=>{
    const refs=getReferenceNumbers(x.z);
-   const refHtml=refs.map(r=>`<span class="refnum ${color(r.num)}">${r.num}</span>`).join('');
-   return `<div class="kpi"><div class="z">${x.z}</div><div style="min-width:0"><b>${['🥇 首选','🥈 次选','🥉 防守','🎖️ 边缘','🛟 备选'][i]}</b><div class="sub">历史：${x.h} ｜辅助：${x.a.toFixed(1)} ｜${x.r}</div><div class="refnums"><span class="sub">号码参考2码：</span>${refHtml}</div></div><div class="score">${x.t.toFixed(1)}</div></div>`;
+   const refHtml=refs.map(r=>`<span class="refnum ${color(r.num)}" title="形态分 ${r.score.toFixed(1)}">${r.num}</span>`).join('');
+   const detail=refs.map(r=>`${r.num}：形态${r.score.toFixed(0)} / 遗漏${r.omission} / 20期${r.c20} / 40期${r.c40} / 80期${r.c80}`).join('；');
+   return `<div class="kpi"><div class="z">${x.z}</div><div style="min-width:0"><b>${['🥇 首选','🥈 次选','🥉 防守','🎖️ 边缘','🛟 备选'][i]}</b><div class="sub">历史：${x.h} ｜辅助：${x.a.toFixed(1)} ｜${x.r}</div><div class="refnums"><span class="sub">号码形态参考2码：</span>${refHtml}</div><div class="numdetail">${detail}</div></div><div class="score">${x.t.toFixed(1)}</div></div>`;
  }).join('');
- document.getElementById('kill3').textContent=scores.slice(-3).map(x=>x.z).join('、');
+ const kills=getKillCandidates(scores);
+ document.getElementById('kill3').innerHTML=kills.map(k=>`<span class="killchip conf-${k.confidence==='高'?'high':k.confidence==='中'?'mid':'low'}">${k.z} · ${k.confidence}置信</span>`).join('');
+ lastNumberBacktest=runNumberBacktest();
+ lastKillBacktest=runKillBacktest();
+ document.getElementById('killBacktest').innerHTML=`近 ${lastKillBacktest.tests} 期步进回测：排除组三误杀率 <b>${(lastKillBacktest.falseKillRate*100).toFixed(1)}%</b>（随机排除3/12的理论误杀基线为25%）。号码模块：Top5生肖命中 <b>${(lastNumberBacktest.zodiacRate*100).toFixed(1)}%</b>；在生肖已命中的样本中，2码命中特码 <b>${(lastNumberBacktest.conditionalNumRate*100).toFixed(1)}%</b>，同生肖随机取2码基线约 <b>${(lastNumberBacktest.randomConditionalBaseline*100).toFixed(1)}%</b>。这些仅是历史回测，不代表未来概率；后续算法只有在滚动回测持续优于基线时才值得保留。`;
  document.getElementById('scoreBody').innerHTML=scores.map(x=>`<tr><td><b>${x.z}</b></td><td>${x.h}</td><td style="color:#4f46e5;font-weight:800">${x.a.toFixed(1)}</td><td><b>${x.t.toFixed(1)}</b></td></tr>`).join('');
 }
 function renderAll(){calcHistory();renderHistory();renderAux();renderResult()}
 renderAll();
 window.addEventListener('beforeunload',clearPreviewUrls);
+
+
+function ensureV224UI(){
+  // 顶部品牌
+  const body=document.body;
+  if(!document.getElementById('v224Brand')){
+    const brand=document.createElement('div');
+    brand.id='v224Brand'; brand.className='v224-head';
+    brand.innerHTML=`<div class="v224-head-title">📊 V22.4 走势分析系统 <span class="v224-badge">验收版</span></div>
+      <div class="v224-head-sub">多模型 · A/B 回测 · 图文证据 · 独立号码模型</div>`;
+    body.insertBefore(brand,body.firstChild);
+  }
+
+  // 历史页统计概览
+  const hp=document.getElementById('panel-history');
+  if(hp && !document.getElementById('historyOverviewV224')){
+    const box=document.createElement('div');
+    box.id='historyOverviewV224';
+    box.className='v224-audit';
+    box.style.margin='10px 12px';
+    hp.appendChild(box);
+  }
+
+  // 图文页分区标题
+  const pp=document.getElementById('panel-poetry');
+  if(pp && !document.getElementById('poetryGuideV224')){
+    const g=document.createElement('div');
+    g.id='poetryGuideV224'; g.className='v224-audit';
+    g.style.margin='10px 12px';
+    g.innerHTML=`<div class="v224-section-title">🧠 图文辅助证据流程</div>
+      <div class="v224-note" style="margin-top:5px">① 粘贴玄机诗 → ② 上传图片/OCR → ③ 系统建议标签 → ④ 你只需确认建议，不要求自己先会解图 → ⑤ 辅助分进入综合模型。</div>`;
+    pp.insertBefore(g,pp.firstChild);
+  }
+
+  // 综合页说明
+  const rp=document.getElementById('panel-result');
+  if(rp && !document.getElementById('resultGuideV224')){
+    const g=document.createElement('div');
+    g.id='resultGuideV224'; g.className='v224-audit';
+    g.style.margin='10px 12px';
+    g.innerHTML=`<div class="v224-section-title">🎯 综合分析结果</div>
+      <div class="v224-note" style="margin-top:5px">生肖排序、同生肖2码、Kill3、置信度与历史/图文冲突分别计算后汇总；分数用于模型内部比较，不代表真实中奖概率。</div>`;
+    rp.insertBefore(g,rp.firstChild);
+  }
+  renderV224Overview();
+}
+
+function renderV224Overview(){
+  const box=document.getElementById('historyOverviewV224');
+  if(!box)return;
+  const n=history.length;
+  const latest=n?history[0]:null;
+  const avgOmission=Z.reduce((s,z)=>s+(historyFeatureRow(z,history).omission||0),0)/12;
+  box.innerHTML=`<div class="v224-section-title">📋 数据统计概览</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px">
+      <div style="background:#eff6ff;padding:8px 4px;border-radius:10px;text-align:center"><b style="font-size:15px;color:#1d4ed8">${n}</b><br><span class="v224-note">总期数</span></div>
+      <div style="background:#ecfdf5;padding:8px 4px;border-radius:10px;text-align:center"><b style="font-size:15px;color:#047857">12</b><br><span class="v224-note">生肖</span></div>
+      <div style="background:#f5f3ff;padding:8px 4px;border-radius:10px;text-align:center"><b style="font-size:15px;color:#6d28d9">49</b><br><span class="v224-note">号码</span></div>
+      <div style="background:#fff1f2;padding:8px 4px;border-radius:10px;text-align:center"><b style="font-size:15px;color:#be123c">${avgOmission.toFixed(1)}</b><br><span class="v224-note">均遗漏</span></div>
+    </div>
+    <div class="v224-note" style="margin-top:8px">${latest?`最新：第 ${latest.period} 期 · ${latest.number} · ${latest.zodiac}`:'暂无历史数据'}</div>`;
+}
+
+
+window.addEventListener('load',()=>setTimeout(ensureV224UI,0));
 </script>
 </body>
 </html>
