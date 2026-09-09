@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.4.6 走势分析系统</title>
+<title>V22.4.7 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -105,7 +105,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.6</span> <span style="font-size:9px;color:#94a3b8">NUM-LAB</span></h1><p>历史80分 + 图文辅助20分 · 号码模型竞争闸门 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.7</span> <span style="font-size:9px;color:#94a3b8">FORWARD-AUDIT</span></h1><p>历史80分 + 图文辅助20分 · 严格闸门 · 前瞻影子验证 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -206,6 +206,20 @@ body{background:var(--bg)!important;color:#0f172a}
     <section class="panel" id="panel-result">
       <div class="notice" style="margin-bottom:12px">综合分 = 历史分(最多80) + 图文辅助分(全体共享最多20)。辅助分不是概率或胜率。</div>
       <div id="resultRuntimeStatus" class="btbox" style="margin-bottom:10px;background:#ecfdf5;border-color:#a7f3d0;color:#047857">计算引擎待启动…</div>
+      <div class="card" id="forwardAuditCard" style="padding:13px;margin-bottom:10px;border-color:#bfdbfe;background:linear-gradient(180deg,#fff,#f8fbff)">
+        <div class="row between" style="align-items:flex-start;gap:8px">
+          <div>
+            <div class="title">🧪 前瞻影子验证</div>
+            <div class="sub" style="margin-top:3px;line-height:1.45">必须在开奖前冻结。冻结后本期候选不可修改；开奖录入后自动对账。后台候选不作为当前推荐展示。</div>
+          </div>
+          <button class="mini" id="freezeForwardBtn" style="white-space:nowrap;color:#1d4ed8;border-color:#bfdbfe">冻结本期</button>
+        </div>
+        <div id="forwardAuditStatus" class="btbox" style="margin-top:9px;background:#eff6ff;border-color:#bfdbfe;color:#334155">准备前瞻验证…</div>
+        <div id="forwardAuditStats" style="margin-top:8px;font-size:10px;line-height:1.6;color:#475569"></div>
+        <div class="row" style="margin-top:8px;gap:8px">
+          <button class="mini" id="exportForwardBtn">导出验证日志</button>
+        </div>
+      </div>
       <div id="algorithmAuditBox" style="margin-bottom:10px;padding:11px;background:white;border:1px solid #e2e8f0;border-radius:13px"></div>
 <div id="decisionMeta" style="margin-bottom:10px;padding:10px 12px;border:1px solid #dbeafe;background:#eff6ff;border-radius:12px;font-size:11px;line-height:1.55;color:#334155"></div>
 <div id="top5"></div>
@@ -271,6 +285,115 @@ let lastNumberBacktest=null;
 let lastKillBacktest=null;
 let evidenceLogs=[];
 try{evidenceLogs=JSON.parse(localStorage.getItem('v22_evidence_logs')||'[]');if(!Array.isArray(evidenceLogs))evidenceLogs=[]}catch(e){evidenceLogs=[]}
+
+let forwardShadowLogs=[];
+try{forwardShadowLogs=JSON.parse(localStorage.getItem('v22_forward_shadow_logs')||'[]');if(!Array.isArray(forwardShadowLogs))forwardShadowLogs=[]}catch(e){forwardShadowLogs=[]}
+function saveForwardShadowLogs(){
+ forwardShadowLogs=forwardShadowLogs.slice(-300);
+ localStorage.setItem('v22_forward_shadow_logs',JSON.stringify(forwardShadowLogs));
+}
+function currentTargetPeriod(){return history.length?Math.max(...history.map(x=>Number(x.period)||0))+1:1}
+function forwardEvidenceState(){
+ return {
+   manual:(document.getElementById('clueText')?.value||'').trim(),
+   ocr:(document.getElementById('ocrText')?.value||'').trim(),
+   tags:[...selectedImageTags],suggestedTags:[...suggestedImageTags],excluded:[...explicitExcluded],weights:{...weights}
+ };
+}
+function makeHistoryFingerprint(hist=history){
+ return hist.slice(0,30).map(x=>`${x.period}:${x.number}`).join('|');
+}
+function buildForwardShadowSnapshot(){
+ const targetPeriod=currentTargetPeriod();
+ const primary=selectPrimaryHistoryModel();
+ const aux=auxScores();
+ const scores=Z.map(z=>({z,h:Number(primary.scores[z]||0),a:Number(aux[z]||0),t:Number(primary.scores[z]||0)+Number(aux[z]||0)})).sort((a,b)=>b.t-a.t);
+ const competition=runNumberModelCompetition(120);
+ const shadowModel=competition?.winner?.id||'A_CURRENT';
+ const numberRefs={};
+ Z.forEach(z=>numberRefs[z]=getReferenceNumbersByModel(z,history,shadowModel).map(x=>Number(x.num)));
+ let rawKills=[];
+ try{rawKills=getKillCandidates(scores).slice(0,3).map(x=>x.z)}catch(e){console.error('影子Kill3构建异常',e)}
+ const numGate=numberGateStatus(),killGate=killGateStatus();
+ return {
+   schemaVersion:1,status:'PENDING',targetPeriod,createdAt:new Date().toISOString(),
+   historyCount:history.length,historyLatestPeriod:history[0]?.period??null,historyFingerprint:makeHistoryFingerprint(),
+   primaryHistoryModel:primary.name,top5:scores.slice(0,5).map(x=>x.z),top3:scores.slice(0,3).map(x=>x.z),top1:scores[0]?.z??null,
+   scoreSnapshot:scores.map(x=>({z:x.z,h:x.h,a:x.a,t:x.t})),
+   shadowNumberModelId:shadowModel,shadowNumberModelName:competition?.winner?.name||shadowModel,
+   shadowNumberRefs:numberRefs,shadowKill3:rawKills,
+   gatesAtFreeze:{numberPass:numGate.pass===true,killPass:killGate.pass===true},
+   evidence:forwardEvidenceState()
+ };
+}
+function freezeForwardShadow(){
+ const p=currentTargetPeriod();
+ const existing=forwardShadowLogs.find(x=>Number(x.targetPeriod)===p);
+ if(existing){renderForwardAudit();return existing}
+ const snap=buildForwardShadowSnapshot();
+ forwardShadowLogs.push(snap);saveForwardShadowLogs();renderForwardAudit();return snap;
+}
+function evaluateForwardResolution(log,number){
+ const actualNumber=Number(number),actualZodiac=zodiac(actualNumber);
+ const refs=Array.isArray(log.shadowNumberRefs?.[actualZodiac])?log.shadowNumberRefs[actualZodiac]:[];
+ const poolSize=numberPool(actualZodiac).length;
+ return {
+   actualNumber,actualZodiac,
+   top1Hit:log.top1===actualZodiac,
+   top3Hit:(log.top3||[]).includes(actualZodiac),
+   top5Hit:(log.top5||[]).includes(actualZodiac),
+   number2Hit:refs.includes(actualNumber),
+   endToEnd2Hit:(log.top5||[]).includes(actualZodiac)&&refs.includes(actualNumber),
+   killFalse:(log.shadowKill3||[]).includes(actualZodiac),
+   numberRandomBaseline:Math.min(1,2/Math.max(1,poolSize))
+ };
+}
+function reconcileForwardShadow(period,number){
+ const p=Number(period),n=Number(number);
+ const log=forwardShadowLogs.find(x=>Number(x.targetPeriod)===p);
+ if(!log)return false;
+ const ev=evaluateForwardResolution(log,n);
+ if(log.status==='RESOLVED' && Number(log.actualNumber)===n)return true;
+ if(log.status==='RESOLVED' && Number(log.actualNumber)!==n){
+   log.correctionCount=(Number(log.correctionCount)||0)+1;log.correctedAt=new Date().toISOString();
+ }
+ Object.assign(log,ev,{status:'RESOLVED',resolvedAt:log.resolvedAt||new Date().toISOString()});
+ saveForwardShadowLogs();return true;
+}
+function forwardStats(){
+ const rows=forwardShadowLogs.filter(x=>x.status==='RESOLVED');
+ const n=rows.length,rate=key=>n?rows.filter(x=>x[key]===true).length/n:0;
+ const baseline=n?rows.reduce((s,x)=>s+(Number(x.numberRandomBaseline)||0),0)/n:0;
+ return {n,top1:rate('top1Hit'),top3:rate('top3Hit'),top5:rate('top5Hit'),number2:rate('number2Hit'),end2:rate('endToEnd2Hit'),killFalse:rate('killFalse'),numberBaseline:baseline};
+}
+function forwardMilestoneText(n){
+ if(n<30)return `证据积累期 ${n}/30：禁止用前瞻成绩解锁任何模型。`;
+ if(n<50)return `第一次审查期 ${n}/50：只允许评估方向，不自动改权重。`;
+ if(n<100)return `初步判断期 ${n}/100：可比较稳定性，仍不得把历史优势称为未来概率。`;
+ return `长期审查样本 ${n}：允许结合分段稳定性重新审查闸门。`;
+}
+function renderForwardAudit(){
+ const status=document.getElementById('forwardAuditStatus'),statsEl=document.getElementById('forwardAuditStats'),btn=document.getElementById('freezeForwardBtn');
+ if(!status||!statsEl)return;
+ const p=currentTargetPeriod(),log=forwardShadowLogs.find(x=>Number(x.targetPeriod)===p),s=forwardStats();
+ if(log){
+   status.style.background='#ecfdf5';status.style.borderColor='#a7f3d0';status.style.color='#047857';
+   status.innerHTML=`✓ 第 <b>${p}</b> 期影子快照已冻结 · ${new Date(log.createdAt).toLocaleString('zh-CN',{hour12:false})}<br><span style="color:#64748b">后台候选已锁定，修改图文/权重不会改写该期快照。</span>`;
+   if(btn){btn.textContent='本期已冻结';btn.disabled=true;btn.style.opacity='.55'}
+ }else{
+   status.style.background='#fff7ed';status.style.borderColor='#fed7aa';status.style.color='#9a3412';
+   status.innerHTML=`第 <b>${p}</b> 期尚未冻结。只有开奖前点击“冻结本期”，该期才计入真实前瞻验证。`;
+   if(btn){btn.textContent='冻结本期';btn.disabled=false;btn.style.opacity='1'}
+ }
+ const pct=v=>(v*100).toFixed(1)+'%';
+ statsEl.innerHTML=`<b>已完成前瞻对账：${s.n} 期</b> ｜ ${forwardMilestoneText(s.n)}<br>`+
+   (s.n?`Top1 ${pct(s.top1)} · Top3 ${pct(s.top3)} · Top5 ${pct(s.top5)} ｜ 影子2码 ${pct(s.number2)} vs 同生肖随机基线 ${pct(s.numberBaseline)} ｜ 端到端Top5+2码 ${pct(s.end2)} ｜ 影子Kill3误杀 ${pct(s.killFalse)} vs 随机25.0%`:
+   `尚无开奖后对账样本。当前2码/Kill3严格闸门保持原状态，不因影子候选存在而解锁。`);
+}
+function exportForwardLogs(){
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.4.7',logs:forwardShadowLogs},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V22.4.7_forward_audit_logs.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},200);
+}
 function saveEvidenceSnapshot(){
  const manual=(document.getElementById('clueText')?.value||'').trim();
  const ocr=(document.getElementById('ocrText')?.value||'').trim();
@@ -299,16 +422,19 @@ function tabs(id){
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
  document.getElementById('bottomAction').classList.toggle('hide',id==='result');
- if(id==='result') safeRenderResult();
+ if(id==='result'){safeRenderResult();renderForwardAudit();}
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tabs(b.dataset.tab));
 document.getElementById('goResult').onclick=()=>tabs('result');
+document.getElementById('freezeForwardBtn').onclick=()=>{if(confirm('确认在开奖前冻结本期影子快照？冻结后本期候选不可修改。'))freezeForwardShadow()};
+document.getElementById('exportForwardBtn').onclick=exportForwardLogs;
 document.getElementById('bulkToggle').onclick=()=>{
  document.getElementById('bulkArea').classList.toggle('show');
  document.getElementById('singleArea').classList.toggle('hide');
 };
 function addRecord(period,num){
  if(!Number.isInteger(period)||!Number.isInteger(num)||num<1||num>49)return false;
+ reconcileForwardShadow(period,num);
  const rec={period,number:num,zodiac:zodiac(num),type:POULTRY.includes(zodiac(num))?'家禽':'野兽'};
  const i=history.findIndex(x=>Number(x.period)===Number(period));
  if(i>=0) history[i]=rec; else history.push(rec);
@@ -352,6 +478,7 @@ document.getElementById('bulkImportBtn').onclick=()=>{
    if(!m){bad.push(idx+1);return}
    const p=Number(m[1]),n=Number(m[2]);
    if(!Number.isInteger(p)||!Number.isInteger(n)||n<1||n>49){bad.push(idx+1);return}
+   reconcileForwardShadow(p,n);
    const rec={period:p,number:n,zodiac:zodiac(n),type:POULTRY.includes(zodiac(n))?'家禽':'野兽'};
    const i=history.findIndex(x=>Number(x.period)===p); if(i>=0)history[i]=rec;else history.push(rec); c++;
  });
@@ -842,14 +969,14 @@ function renderAlgorithmAudit(){
  let verdictText='新旧模型各有优劣，暂不自动淘汰任何一方。';
  let verdictColor='#92400e', verdictBg='#fffbeb';
  if(r.verdict==='MULTI_WIN'){
-   verdictText='V22.4.6 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
+   verdictText='V22.4.7 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
    verdictColor='#047857'; verdictBg='#ecfdf5';
  }else if(r.verdict==='LEGACY_WIN'){
    verdictText='旧模型在当前回测口径下占优；新模型不得仅因版本更新而强行替代。';
    verdictColor='#b91c1c'; verdictBg='#fef2f2';
  }
  box.innerHTML=`
-   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.6</div>
+   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.7</div>
    <div style="font-size:10px;color:#64748b;line-height:1.5;margin-bottom:9px">
      使用最近 ${r.tests} 个可回测期逐期训练→预测→揭晓。旧模型与多窗口模型使用完全相同的数据截面，避免偷看未来数据。
    </div>
@@ -872,7 +999,7 @@ function renderAlgorithmAudit(){
    </div>
    ${(()=>{const c=runNumberModelCompetition(120);const pct2=v=>(v*100).toFixed(1)+'%';return `<div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#f8fbff;border:1px solid #dbeafe;font-size:9px;line-height:1.5;color:#475569"><b>2码模型竞争（前半段选型 / 后半段验收）</b><br>${c.rows.map(x=>`${x.name}：${pct2(x.cal.rate)} → ${pct2(x.val.rate)}`).join(' ｜ ')}<br><span style="color:${c.pass?'#047857':'#b45309'}">当前胜出：<b>${c.winner.name}</b>；${c.pass?'达到观察闸门，可显示2码':'未达到闸门，继续暂停2码'}</span></div>`})()}
    <div style="margin-top:7px;font-size:9px;color:#94a3b8;line-height:1.45">
-     注：历史回测只能用于比较模型，不证明未来开奖结果可预测。号码模型先用前半段校准集选型，再用后半段验证集验收；未通过闸门自动暂停。
+     注：历史回测只能用于比较模型，不证明未来开奖结果可预测。号码模型先用前半段校准集选型，再用后半段验证集验收；未通过闸门自动暂停。V22.4.7 起新增开奖前冻结的前瞻影子验证，前瞻样本不足30期时不得据此解锁任何模型。
    </div>`;
 }
 
@@ -983,7 +1110,7 @@ function safeRenderResult(){
    if(status){status.style.background='#fef2f2';status.style.borderColor='#fecaca';status.style.color='#b91c1c';status.textContent='✕ 综合引擎异常：'+String(e?.message||e);}
  }
 }
-function renderAll(){calcHistory();renderHistory();renderAux();safeRenderResult()}
+function renderAll(){calcHistory();renderHistory();renderAux();safeRenderResult();renderForwardAudit()}
 renderAll();
 window.addEventListener('beforeunload',clearPreviewUrls);
 
