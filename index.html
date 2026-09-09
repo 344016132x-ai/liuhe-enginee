@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.5.0 走势分析系统</title>
+<title>V22.5.1 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -105,7 +105,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.5.0</span> <span style="font-size:9px;color:#94a3b8">DECISION-LAB</span></h1><p>历史80分 + 图文辅助20分 · 49号码实验室 · Kill1/2/3 · 前瞻盲测 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.5.1</span> <span style="font-size:9px;color:#94a3b8">SIMPLE</span></h1><p>历史80分 + 图文辅助20分 · 双2码参考 · 平肖6肖 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -206,51 +206,33 @@ body{background:var(--bg)!important;color:#0f172a}
     <section class="panel" id="panel-result">
       <div class="notice" style="margin-bottom:12px">综合分 = 历史分(最多80) + 图文辅助分(全体共享最多20)。辅助分不是概率或胜率。</div>
       <div id="resultRuntimeStatus" class="btbox" style="margin-bottom:10px;background:#ecfdf5;border-color:#a7f3d0;color:#047857">计算引擎待启动…</div>
-      <div class="card" id="forwardAuditCard" style="padding:13px;margin-bottom:10px;border-color:#bfdbfe;background:linear-gradient(180deg,#fff,#f8fbff)">
-        <div class="row between" style="align-items:flex-start;gap:8px">
-          <div>
-            <div class="title">🔒 正式前瞻盲测</div>
-            <div class="sub" style="margin-top:3px;line-height:1.45">开奖前冻结，开奖后自动对账。V22.5.0 会同时锁定生肖Top5、49号码Top10/5/2与Kill1/2/3影子候选；不足30个有效盲测样本禁止据此前瞻成绩调参或宣布可用。</div>
-          </div>
-          <button class="mini" id="freezeForwardBtn" style="white-space:nowrap;color:#1d4ed8;border-color:#bfdbfe">冻结本期盲测</button>
-        </div>
-        <div id="forwardAuditStatus" class="btbox" style="margin-top:9px;background:#eff6ff;border-color:#bfdbfe;color:#334155">准备前瞻验证…</div>
-        <div id="forwardAuditStats" style="margin-top:8px;font-size:10px;line-height:1.6;color:#475569"></div>
-        <div class="row" style="margin-top:8px;gap:8px">
-          <button class="mini" id="exportForwardBtn">导出验证日志</button>
-        </div>
-      </div>
-      <div id="algorithmAuditBox" style="margin-bottom:10px;padding:11px;background:white;border:1px solid #e2e8f0;border-radius:13px"></div>
-<div class="card" id="number49LabCard" style="padding:13px;margin-bottom:10px;border-color:#c7d2fe;background:linear-gradient(180deg,#fff,#f7f8ff)">
-  <div class="title">🔢 49号码竞争实验室 · V22.5.0</div>
-  <div class="sub" style="margin-top:4px;line-height:1.5">
-    不再只在生肖内部挑2码。7套号码模型直接对01–49排序，分别验证 Top10 / Top5 / Top2；
-    前半段选模型、后半段独立验收。未过闸门时仍显示“影子候选”，但绝不标成正式推荐。
-  </div>
-  <div id="number49LabBody" style="margin-top:9px"></div>
+      
+      
+
+
+
+
+<div class="card" id="flat6Card" style="padding:13px;margin-bottom:10px;border-color:#bfdbfe;background:linear-gradient(180deg,#fff,#f8fbff)">
+  <div class="title">🧭 平肖参考 6肖</div>
+  <div class="sub" style="margin-top:4px;line-height:1.5">独立参考：近期出现、遗漏与中期稳定度综合计算；Kill仅作负向风险扣分，不直接等同于平肖结论。</div>
+  <div id="flat6Body" style="margin-top:9px"></div>
 </div>
-<div class="card" id="killTierLabCard" style="padding:13px;margin-bottom:10px;border-color:#fecdd3;background:linear-gradient(180deg,#fff,#fff8f8)">
-  <div class="title">🧊 Kill1 / Kill2 / Kill3 竞争实验室</div>
-  <div class="sub" style="margin-top:4px;line-height:1.5">
-    不强迫系统一定“杀三肖”。同一批排除模型分别竞争 Kill1、Kill2、Kill3；
-    与随机误杀基线 8.33% / 16.67% / 25.00% 比较，由数据决定哪一档最有资格继续盲测。
-  </div>
-  <div id="killTierLabBody" style="margin-top:9px"></div>
+<div class="notice" style="margin-bottom:10px;background:#f8fafc;border-color:#e2e8f0;color:#475569">
+  每个 Top5 生肖显示两组2码：<b>数据2码</b>＝历史结构/间隔；<b>冷热2码</b>＝近期冷热/遗漏。两组均是历史特征参考，不是中奖概率。
 </div>
-<div id="decisionMeta" style="margin-bottom:10px;padding:10px 12px;border:1px solid #dbeafe;background:#eff6ff;border-radius:12px;font-size:11px;line-height:1.55;color:#334155"></div>
 <div id="top5"></div>
       <div class="card">
         <div class="row between" style="align-items:flex-start">
   <div>
-    <div class="title">独立排除观察</div>
-    <div class="sub">不是简单取总分最后三名；仅表示历史形态排除证据，不代表一定不会出现。</div>
+    <div class="title">平肖风险参考</div>
+    <div class="sub">Kill模型只作负向风险参考，不再显示复杂实验室，也不作为“必杀”结论。</div>
   </div>
   <div id="kill3" class="killrow" style="justify-content:flex-end"></div>
 </div>
-<div id="killBacktest" class="btbox"></div>
+<div id="killBacktest" class="btbox" style="display:none"></div>
       </div>
       <div class="card">
-        <div class="title" style="margin-bottom:8px">12生肖评分明细</div>
+        <div class="title" style="margin-bottom:8px">12生肖分数明细</div>
         <table class="table"><thead><tr><th>生肖</th><th>历史(80)</th><th>辅助(20)</th><th>总分</th></tr></thead><tbody id="scoreBody"></tbody></table>
       </div>
     </section>
@@ -497,7 +479,7 @@ function tabs(id){
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
  document.getElementById('bottomAction').classList.toggle('hide',id==='result');
- if(id==='result'){safeRenderResult();renderForwardAudit();}
+ if(id==='result'){safeRenderResult();}
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tabs(b.dataset.tab));
 document.getElementById('goResult').onclick=()=>tabs('result');
@@ -997,6 +979,57 @@ function getV225Labs(){
 function labBallHtml(nums){
   return nums.map(n=>`<span class="refnum ${color(n)}" style="margin:2px">${String(n).padStart(2,'0')}</span>`).join('');
 }
+
+function getDataTwoNumbers(zodiacName,hist=history){
+  const nums=numberPool(zodiacName);
+  return nums.map(n=>{
+    const f=numberFeatures(n,hist);
+    const base=numberModelScore('E_GAP_CLOSE',n,hist);
+    const score=base + Math.min(f.omission,35)*0.15;
+    return {num:n,score,omission:f.omission};
+  }).sort((a,b)=>b.score-a.score||b.omission-a.omission||a.num-b.num).slice(0,2).map(x=>x.num);
+}
+function getHotColdTwoNumbers(zodiacName,hist=history){
+  const nums=numberPool(zodiacName);
+  const rows=nums.map(n=>{
+    const f=numberFeatures(n,hist);
+    const hot=(f.c5*5)+(f.c10*3)+(f.c20*1.5)-Math.min(f.omission,20)*0.4;
+    const cold=Math.min(f.omission,45)*1.7-(f.c10*2.5)-(f.c20*0.8);
+    return {num:n,hot,cold,omission:f.omission};
+  });
+  const hotPick=[...rows].sort((a,b)=>b.hot-a.hot||a.omission-b.omission||a.num-b.num)[0];
+  const coldPick=[...rows].filter(x=>x.num!==hotPick.num).sort((a,b)=>b.cold-a.cold||b.omission-a.omission||a.num-b.num)[0];
+  return [hotPick.num,coldPick.num];
+}
+function flatSixScore(z,hist=history){
+  const c5=hist.slice(0,5).filter(x=>x.zodiac===z).length;
+  const c10=hist.slice(0,10).filter(x=>x.zodiac===z).length;
+  const c20=hist.slice(0,20).filter(x=>x.zodiac===z).length;
+  const c40=hist.slice(0,40).filter(x=>x.zodiac===z).length;
+  const oi=hist.findIndex(x=>x.zodiac===z);
+  const omission=oi<0?hist.length:oi;
+  let score=50+c10*3+c20*1.4+c40*0.5;
+  score+=Math.max(0,10-Math.abs(omission-8))*1.2;
+  if(c5>=3)score-=8;
+  if(omission>24)score-=8;
+  try{
+    const risk=killModelRows('B_EXPOSURE',hist).sort((a,b)=>b.score-a.score);
+    const pos=risk.findIndex(x=>x.z===z);
+    if(pos>=0&&pos<3)score-=8-(pos*2);
+  }catch(e){}
+  return score;
+}
+function getFlatSix(hist=history){
+  return Z.map(z=>({z,score:flatSixScore(z,hist)})).sort((a,b)=>b.score-a.score||a.z.localeCompare(b.z)).slice(0,6);
+}
+function renderFlatSix(){
+  const el=document.getElementById('flat6Body');
+  if(!el)return;
+  const six=getFlatSix(history);
+  el.innerHTML=`<div class="row" style="flex-wrap:wrap;gap:7px">${six.map((x,i)=>`<span style="padding:7px 10px;border:1px solid #bfdbfe;border-radius:999px;background:${i<3?'#eff6ff':'#fff'};font-weight:900;color:#1e3a8a">${x.z}</span>`).join('')}</div>
+  <div class="sub" style="margin-top:7px">独立6肖参考；与Top5重合时可视为历史信号共振，但仍不代表未来概率。</div>`;
+}
+
 function renderV225DecisionLabs(){
   const nbox=document.getElementById('number49LabBody');
   const kbox=document.getElementById('killTierLabBody');
@@ -1401,23 +1434,26 @@ function renderResultCore(){
    const top5El=document.getElementById('top5');
    if(top5El){
      top5El.innerHTML=scores.slice(0,5).map((x,i)=>{
-       let refs=[];
-       try{ refs=getReferenceNumbers(x.z)||[]; }catch(e){ console.error('号码参考计算异常',x.z,e); }
-       const refHtml=refs.map(r=>`<span class="refnum ${typeof color==='function'?color(r.num):''}" title="形态分 ${Number(r.score||0).toFixed(1)}">${r.num}</span>`).join('');
-       const detail=refs.map(r=>`${r.num}：形态${Number(r.score||0).toFixed(0)} / 遗漏${r.omission??'-'} / 20期${r.counts?.[20]??'-'} / 40期${r.counts?.[40]??'-'} / 80期${r.counts?.[80]??'-'}`).join('；');
-       const numLine=numGate.pass?`<div class="refnums"><span class="sub">已通过验证闸门的2码参考：</span>${refHtml||'<span class="sub">暂不可用</span>'}</div><div class="numdetail">${detail}</div>`:`<div class="numdetail" style="color:#b45309"><b>2码推荐已暂停：</b>候选号码模型未通过独立验证闸门，避免把样本噪声包装成推荐。</div>`;
+       const data2=getDataTwoNumbers(x.z,history);
+       const hotcold2=getHotColdTwoNumbers(x.z,history);
+       const numLine=`<div style="margin-top:6px;display:flex;flex-direction:column;gap:5px">
+         <div class="refnums"><span class="sub">数据2码：</span>${data2.map(n=>`<span class="refnum ${color(n)}">${String(n).padStart(2,'0')}</span>`).join('')}</div>
+         <div class="refnums"><span class="sub">冷热2码：</span>${hotcold2.map(n=>`<span class="refnum ${color(n)}">${String(n).padStart(2,'0')}</span>`).join('')}</div>
+       </div>`;
        return `<div class="kpi"><div class="z">${x.z}</div><div style="min-width:0"><b>${['🥇 首选','🥈 次选','🥉 防守','🎖️ 边缘','🛟 备选'][i]}</b><div class="sub">历史：${x.h.toFixed(1)} ｜辅助：${x.a.toFixed(1)} ｜${x.r}</div>${numLine}</div><div class="score">${x.t.toFixed(1)}</div></div>`;
      }).join('');
    }
 
    try{
-     const kills=activeKillCandidates(scores);
      const killEl=document.getElementById('kill3');
-     if(killEl) killEl.innerHTML=killGate.pass?kills.map(k=>`<span class="killchip conf-${k.confidence==='高'?'high':k.confidence==='中'?'mid':'low'}">${k.z} · ${k.confidence}置信</span>`).join(''):`<span class="sub" style="color:#b91c1c">Kill3历史误杀率未优于25%随机基线，本期自动暂停。</span>`;
+     if(killEl){
+       const labs=getV225Labs().kill.tiers;
+       const chosen=labs[1]?.pass?labs[1]:(labs[2]?.pass?labs[2]:(labs[3]?.pass?labs[3]:labs[1]));
+       const risk=chosen?.candidates||[];
+       killEl.innerHTML=risk.length?risk.map(z=>`<span class="killchip">${z}</span>`).join(''):`<span class="sub">暂无明显风险肖</span>`;
+     }
    }catch(e){
-     console.error('Kill3异常',e);
-     const killEl=document.getElementById('kill3');
-     if(killEl) killEl.innerHTML='<span class="sub" style="color:#b91c1c">排除模块暂不可用，但不影响Top5。</span>';
+     console.error('平肖风险参考异常',e);
    }
 
    const scoreBody=document.getElementById('scoreBody');
@@ -1426,7 +1462,7 @@ function renderResultCore(){
    }
 
    // V22.5.0 新实验室与原综合输出隔离；异常不得拖垮核心页面。
-   renderV225DecisionLabs();
+   renderFlatSix();
 
    // 核心结果已经完成。回测与A/B验收延后执行，任何异常不得阻塞页面。
    setTimeout(()=>{
