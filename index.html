@@ -49,8 +49,16 @@ textarea.input{min-height:95px;resize:vertical}
 .suggestbox{margin-top:10px;padding:10px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px}
 .suggesthead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .suggestchips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.suggestchip{border:1px solid #93c5fd;background:#fff;color:#1d4ed8;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:700}
-.suggestreason{font-size:10px;color:#64748b;margin-top:6px;line-height:1.45}
+.suggestchip{border:1px solid #93c5fd;background:#fff;color:#1d4ed8;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:800}
+.suggestchip.strong{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8}
+.suggestchip.medium{background:#eff6ff;border-color:#93c5fd;color:#1e40af}
+.suggestchip.weak{background:#fff;border-color:#cbd5e1;color:#64748b}
+.suggestreason{font-size:10px;color:#64748b;margin-top:6px;line-height:1.55}
+.tag-guide{margin-top:10px;padding:10px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0}
+.tag-guide-title{font-size:11px;font-weight:900;color:#475569;margin-bottom:6px}
+.tag-guide .tags{margin-top:0}
+.reco-note{font-size:10px;color:#475569;line-height:1.5;margin-top:7px}
+.auto-badge{display:inline-flex;align-items:center;border-radius:999px;background:#dcfce7;color:#166534;padding:3px 7px;font-size:9px;font-weight:900;margin-left:5px}
 .killrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .killchip{display:inline-flex;align-items:center;gap:4px;padding:6px 9px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:800}
 .conf-high{background:#fee2e2;color:#b91c1c}.conf-mid{background:#fef3c7;color:#92400e}.conf-low{background:#f1f5f9;color:#64748b}
@@ -150,7 +158,7 @@ body{background:var(--bg)!important;color:#0f172a}
     <section class="panel" id="panel-poetry">
       <div class="card">
         <div class="title">🖼️ 本地图文辅助解析</div>
-        <div class="sub" style="margin:5px 0 10px">不使用 API Key。图片不会上传；可用本地 OCR 提取图中文字，并由你确认画面标签。</div>
+        <div class="sub" style="margin:5px 0 10px">不使用 API Key。图片不会上传；本地 OCR 后系统会推荐应保留的画面标签，并自动预选，你只需确认。</div>
         <div class="upload">
           <strong style="font-size:13px;color:#2563eb">＋ 点击选择图片</strong>
           <div class="sub">可多选；建议每次 1～3 张，OCR 会在本机浏览器运行</div>
@@ -168,19 +176,23 @@ body{background:var(--bg)!important;color:#0f172a}
         </div>
 
         <div style="margin-top:10px">
-          <div class="title" style="font-size:13px">画面标签（由你确认）</div>
-          <div class="sub">图片本身的隐喻不能靠免费 OCR 判断，所以用人工标签把画面证据真正接入辅助模型。</div>
-          <div class="tags" id="imageTags"></div>
+          <div class="title" style="font-size:13px">画面标签｜系统推荐，请你确认 <span class="auto-badge">推荐项自动预选</span></div>
+          <div class="sub">你不用自己猜该点哪些。系统会先根据 OCR 文字和图片主色给出推荐，并自动选中；你只需要检查有没有明显错误。</div>
           <div class="suggestbox" id="tagSuggestionBox">
             <div class="suggesthead">
               <div>
-                <div class="title" style="font-size:12px;color:#1d4ed8">系统建议你确认的标签</div>
-                <div class="sub">根据 OCR 文字与图片主色自动提示；只确认你肉眼确实看得到的客观元素，不需要自己解谜。</div>
+                <div class="title" style="font-size:12px;color:#1d4ed8">建议保留的标签</div>
+                <div class="sub">★★★ 强推荐 · ★★ 辅助推荐 · ★ 低置信提示。推荐项会自动选中。</div>
               </div>
-              <button type="button" class="mini" id="applySuggestedTags">采用建议</button>
+              <button type="button" class="mini" id="applySuggestedTags">重新采用推荐</button>
             </div>
-            <div class="suggestchips" id="suggestedTags"><span class="sub">上传图片并完成 OCR 后，这里会给出建议。</span></div>
-            <div class="suggestreason" id="suggestedTagReason">例如：识别到“将、战、军”会建议「将军」；图片主色明显偏红会建议「红色」。</div>
+            <div class="suggestchips" id="suggestedTags"><span class="sub">上传图片并完成 OCR 后，这里会告诉你建议保留哪些标签。</span></div>
+            <div class="suggestreason" id="suggestedTagReason">未识别前不需要点击下方任何标签。</div>
+            <div class="reco-note">操作方式：推荐没有明显错误 → 直接继续；有明显错误 → 点击下方已选中的标签取消，或手动补充漏掉的标签。</div>
+          </div>
+          <div class="tag-guide">
+            <div class="tag-guide-title">手动检查 / 补充（一般不需要操作）</div>
+            <div class="tags" id="imageTags"></div>
           </div>
         </div>
 
@@ -250,6 +262,7 @@ let editingPeriod=null;
 let selectedImageFiles=[];
 let selectedImageTags=new Set();
 let suggestedImageTags=new Set();
+let suggestedTagMeta=new Map();
 let suggestedTagReasons=[];
 let currentObjectUrls=[];
 let explicitExcluded=new Set();
@@ -400,16 +413,32 @@ const TAG_HINT_RULES=[
  {tag:'月亮',keys:['月','月亮','明月','月宫','嫦娥']},
  {tag:'人物',keys:['人','为人','男子','女子','老翁','童子','和尚','仙','将军']}
 ];
+function addSuggestedTag(tag,reason,score=1){
+ suggestedImageTags.add(tag);
+ const prev=suggestedTagMeta.get(tag)||{score:0,reasons:[]};
+ prev.score+=score;
+ if(reason&&!prev.reasons.includes(reason))prev.reasons.push(reason);
+ suggestedTagMeta.set(tag,prev);
+}
+function recommendationLevel(score){
+ if(score>=3)return {stars:'★★★',cls:'strong',label:'强推荐'};
+ if(score>=2)return {stars:'★★',cls:'medium',label:'辅助推荐'};
+ return {stars:'★',cls:'weak',label:'低置信提示'};
+}
 function renderSuggestedTags(){
  const box=document.getElementById('suggestedTags'),reason=document.getElementById('suggestedTagReason');
  if(!box||!reason)return;
  if(!suggestedImageTags.size){
    box.innerHTML='<span class="sub">暂未生成标签建议。完成 OCR 后会自动更新。</span>';
-   reason.textContent='建议只确认你能直接看见的元素，不要自行解释寓意。';
+   reason.textContent='现在不需要自己选择。识别完成后，系统会把建议项放在这里并自动预选。';
    return;
  }
- box.innerHTML=[...suggestedImageTags].map(t=>`<span class="suggestchip">${t}</span>`).join('');
- reason.innerHTML=suggestedTagReasons.map(x=>'• '+x).join('<br>');
+ const ordered=[...suggestedImageTags].sort((a,b)=>(suggestedTagMeta.get(b)?.score||0)-(suggestedTagMeta.get(a)?.score||0));
+ box.innerHTML=ordered.map(t=>{const m=suggestedTagMeta.get(t)||{score:1};const lv=recommendationLevel(m.score);return `<button type="button" class="suggestchip ${lv.cls}" data-recotag="${t}">${t} ${lv.stars}</button>`}).join('');
+ reason.innerHTML=ordered.map(t=>{const m=suggestedTagMeta.get(t)||{score:1,reasons:[]};const lv=recommendationLevel(m.score);return `• <b>${t}｜${lv.label}</b>：${(m.reasons||[]).join('；')||'检测到相关证据'}`}).join('<br>');
+ document.querySelectorAll('[data-recotag]').forEach(btn=>btn.onclick=()=>{
+   const t=btn.dataset.recotag; selectedImageTags.has(t)?selectedImageTags.delete(t):selectedImageTags.add(t); renderImageTags();
+ });
 }
 async function getDominantColorSuggestions(files){
  const votes={红色:0,蓝色:0,绿色:0};
@@ -434,22 +463,31 @@ async function getDominantColorSuggestions(files){
      }
    }catch(e){console.warn('color sample skipped',e)}
  }
- Object.entries(votes).forEach(([tag,v])=>{if(v>0){suggestedImageTags.add(tag);suggestedTagReasons.push(`图片主色取样偏${tag.replace('色','')}，建议确认「${tag}」`)}})
+ Object.entries(votes).forEach(([tag,v])=>{if(v>0)addSuggestedTag(tag,`图片主色取样偏${tag.replace('色','')}`,v>=2?2:1)})
+ suggestedImageTags.forEach(t=>selectedImageTags.add(t));
+ renderImageTags();
  renderSuggestedTags();
 }
 function updateTagSuggestionsFromText(){
- suggestedImageTags=new Set(); suggestedTagReasons=[];
+ suggestedImageTags=new Set(); suggestedTagReasons=[]; suggestedTagMeta=new Map();
  const text=((document.getElementById('ocrText')?.value||'')+' '+(document.getElementById('clueText')?.value||'')).trim();
  TAG_HINT_RULES.forEach(rule=>{
-   const hit=rule.keys.find(k=>text.includes(k));
-   if(hit){suggestedImageTags.add(rule.tag);suggestedTagReasons.push(`文字/OCR 出现「${hit}」，建议核对画面是否有「${rule.tag}」`)}
+   const hits=rule.keys.filter(k=>text.includes(k));
+   if(hits.length){
+     const score=Math.min(3,hits.length+1);
+     addSuggestedTag(rule.tag,`文字/OCR 命中「${hits.slice(0,3).join('、')}」`,score);
+   }
  });
+ suggestedImageTags.forEach(t=>selectedImageTags.add(t));
+ renderImageTags();
+ renderSuggestedTags();
  getDominantColorSuggestions(selectedImageFiles);
 }
 document.getElementById('applySuggestedTags').onclick=()=>{
  if(!suggestedImageTags.size)return alert('当前没有可采用的标签建议');
  suggestedImageTags.forEach(t=>selectedImageTags.add(t));
  renderImageTags();
+ renderSuggestedTags();
 };
 function clearPreviewUrls(){currentObjectUrls.forEach(u=>URL.revokeObjectURL(u));currentObjectUrls=[]}
 document.getElementById('imageInput').onchange=e=>{
