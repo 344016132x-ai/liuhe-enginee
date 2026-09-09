@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.4.9 走势分析系统</title>
+<title>V22.5.0 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -105,7 +105,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.9</span> <span style="font-size:9px;color:#94a3b8">BLIND-AUDIT</span></h1><p>历史80分 + 图文辅助20分 · 严格闸门 · 前瞻影子验证 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.5.0</span> <span style="font-size:9px;color:#94a3b8">DECISION-LAB</span></h1><p>历史80分 + 图文辅助20分 · 49号码实验室 · Kill1/2/3 · 前瞻盲测 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -210,7 +210,7 @@ body{background:var(--bg)!important;color:#0f172a}
         <div class="row between" style="align-items:flex-start;gap:8px">
           <div>
             <div class="title">🔒 正式前瞻盲测</div>
-            <div class="sub" style="margin-top:3px;line-height:1.45">开奖前冻结，开奖后自动对账。冻结时锁定算法版本、模型参数指纹与全部候选；不足30个有效盲测样本禁止据此前瞻成绩调参或解锁。</div>
+            <div class="sub" style="margin-top:3px;line-height:1.45">开奖前冻结，开奖后自动对账。V22.5.0 会同时锁定生肖Top5、49号码Top10/5/2与Kill1/2/3影子候选；不足30个有效盲测样本禁止据此前瞻成绩调参或宣布可用。</div>
           </div>
           <button class="mini" id="freezeForwardBtn" style="white-space:nowrap;color:#1d4ed8;border-color:#bfdbfe">冻结本期盲测</button>
         </div>
@@ -221,6 +221,22 @@ body{background:var(--bg)!important;color:#0f172a}
         </div>
       </div>
       <div id="algorithmAuditBox" style="margin-bottom:10px;padding:11px;background:white;border:1px solid #e2e8f0;border-radius:13px"></div>
+<div class="card" id="number49LabCard" style="padding:13px;margin-bottom:10px;border-color:#c7d2fe;background:linear-gradient(180deg,#fff,#f7f8ff)">
+  <div class="title">🔢 49号码竞争实验室 · V22.5.0</div>
+  <div class="sub" style="margin-top:4px;line-height:1.5">
+    不再只在生肖内部挑2码。7套号码模型直接对01–49排序，分别验证 Top10 / Top5 / Top2；
+    前半段选模型、后半段独立验收。未过闸门时仍显示“影子候选”，但绝不标成正式推荐。
+  </div>
+  <div id="number49LabBody" style="margin-top:9px"></div>
+</div>
+<div class="card" id="killTierLabCard" style="padding:13px;margin-bottom:10px;border-color:#fecdd3;background:linear-gradient(180deg,#fff,#fff8f8)">
+  <div class="title">🧊 Kill1 / Kill2 / Kill3 竞争实验室</div>
+  <div class="sub" style="margin-top:4px;line-height:1.5">
+    不强迫系统一定“杀三肖”。同一批排除模型分别竞争 Kill1、Kill2、Kill3；
+    与随机误杀基线 8.33% / 16.67% / 25.00% 比较，由数据决定哪一档最有资格继续盲测。
+  </div>
+  <div id="killTierLabBody" style="margin-top:9px"></div>
+</div>
 <div id="decisionMeta" style="margin-bottom:10px;padding:10px 12px;border:1px solid #dbeafe;background:#eff6ff;border-radius:12px;font-size:11px;line-height:1.55;color:#334155"></div>
 <div id="top5"></div>
       <div class="card">
@@ -315,6 +331,12 @@ function buildForwardShadowSnapshot(){
  let rawKills=[];
  try{rawKills=getKillCandidates(scores).slice(0,3).map(x=>x.z)}catch(e){console.error('影子Kill3构建异常',e)}
  const numGate=numberGateStatus(),killGate=killGateStatus();
+ let v225NumberTiers={},v225KillTiers={};
+ try{
+   const labs=getV225Labs();
+   [10,5,2].forEach(k=>{const t=labs.number.tiers[k];v225NumberTiers[k]={modelId:t.winner.id,modelName:t.winner.name,candidates:[...t.candidates],historyGatePass:t.pass};});
+   [1,2,3].forEach(k=>{const t=labs.kill.tiers[k];v225KillTiers[k]={modelId:t.winner.id,modelName:t.winner.name,candidates:[...t.candidates],historyGatePass:t.pass};});
+ }catch(e){console.error('V22.5.0盲测候选冻结异常',e)}
  return {
    schemaVersion:1,status:'PENDING',targetPeriod,createdAt:new Date().toISOString(),
    historyCount:history.length,historyLatestPeriod:history[0]?.period??null,historyFingerprint:makeHistoryFingerprint(),
@@ -323,11 +345,12 @@ function buildForwardShadowSnapshot(){
    shadowNumberModelId:shadowModel,shadowNumberModelName:competition?.winner?.name||shadowModel,
    shadowNumberRefs:numberRefs,shadowKill3:rawKills,
    gatesAtFreeze:{numberPass:numGate.pass===true,killPass:killGate.pass===true},
+   v225DecisionLab:{numberTiers:v225NumberTiers,killTiers:v225KillTiers},
    evidence:forwardEvidenceState()
  };
 }
 
-const BLIND_PROTOCOL_VERSION='V22.4.9';
+const BLIND_PROTOCOL_VERSION='V22.5.0';
 const BLIND_MIN_FIRST_AUDIT=30;
 function blindAlgorithmFingerprint(){
  const payload=[
@@ -335,6 +358,8 @@ function blindAlgorithmFingerprint(){
    String(calculateHistory80),
    String(runNumberModelCompetition),
    String(runKillModelCompetition),
+   String(runGlobal49NumberLab),
+   String(runKillTierLab),
    String(numberGateStatus),
    String(killGateStatus)
  ].join('||');
@@ -385,6 +410,12 @@ function evaluateForwardResolution(log,number){
    number2Hit:refs.includes(actualNumber),
    endToEnd2Hit:(log.top5||[]).includes(actualZodiac)&&refs.includes(actualNumber),
    killFalse:(log.shadowKill3||[]).includes(actualZodiac),
+   v225Number10Hit:(log.v225DecisionLab?.numberTiers?.[10]?.candidates||[]).includes(actualNumber),
+   v225Number5Hit:(log.v225DecisionLab?.numberTiers?.[5]?.candidates||[]).includes(actualNumber),
+   v225Number2Hit:(log.v225DecisionLab?.numberTiers?.[2]?.candidates||[]).includes(actualNumber),
+   v225Kill1False:(log.v225DecisionLab?.killTiers?.[1]?.candidates||[]).includes(actualZodiac),
+   v225Kill2False:(log.v225DecisionLab?.killTiers?.[2]?.candidates||[]).includes(actualZodiac),
+   v225Kill3False:(log.v225DecisionLab?.killTiers?.[3]?.candidates||[]).includes(actualZodiac),
    numberRandomBaseline:Math.min(1,2/Math.max(1,poolSize))
  };
 }
@@ -429,14 +460,14 @@ function renderForwardAudit(){
  const blindRows=forwardShadowLogs.filter(x=>x.status==='RESOLVED'&&x.blindProtocolVersion===BLIND_PROTOCOL_VERSION);
  const bn=blindRows.length,brate=key=>bn?blindRows.filter(x=>x[key]===true).length/bn:0;
  const bbase=bn?blindRows.reduce((sum,x)=>sum+(Number(x.numberRandomBaseline)||0),0)/bn:0;
- statsEl.innerHTML=`<b>V22.4.9有效盲测：${bn} 期</b> ｜ ${forwardMilestoneText(bn)}<br>`+
+ statsEl.innerHTML=`<b>V22.5.0有效盲测：${bn} 期</b> ｜ ${forwardMilestoneText(bn)}<br>`+
    (bn?`Top1 ${pct(brate('top1Hit'))} · Top3 ${pct(brate('top3Hit'))} · Top5 ${pct(brate('top5Hit'))} ｜ 影子2码 ${pct(brate('number2Hit'))} vs 随机基线 ${pct(bbase)} ｜ 端到端 ${pct(brate('endToEnd2Hit'))} ｜ Kill3误杀 ${pct(brate('killFalse'))} vs 随机25.0%`:
-   `尚无V22.4.9开奖后盲测样本。旧版前瞻日志保留但不计入本轮30期解锁审计。`) +
+   `尚无V22.5.0开奖后盲测样本。旧版前瞻日志保留但不计入本轮30期解锁审计。`) +
    `<br><span style="color:#64748b">待开奖 ${bp.pending} 期 · 算法指纹 ${bp.fingerprint} · 旧前瞻对账 ${s.n} 期仅作历史记录</span>`;
 }
 function exportForwardLogs(){
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.4.9',protocol:'formal-blind-audit',algorithmFingerprint:blindAlgorithmFingerprint(),minimumFirstAudit:30,logs:forwardShadowLogs},null,2)],{type:'application/json'});
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V22.4.9_blind_audit_logs.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},200);
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.5.0',protocol:'formal-blind-audit',algorithmFingerprint:blindAlgorithmFingerprint(),minimumFirstAudit:30,logs:forwardShadowLogs},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V22.5.0_blind_audit_logs.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},200);
 }
 function saveEvidenceSnapshot(){
  const manual=(document.getElementById('clueText')?.value||'').trim();
@@ -786,6 +817,224 @@ const NUMBER_MODELS=[
  {id:'F_MID_OMIT',name:'中段遗漏',complexity:2},
  {id:'G_ENSEMBLE',name:'三模型秩融合',complexity:4}
 ];
+
+// ============================================================
+// V22.5.0 — 49号码独立竞争 + Kill1/2/3 分档竞争
+// 说明：历史回测仅用于模型比较，不等于未来中奖概率。
+// ============================================================
+const V225_NUMBER_MODELS = [
+  {id:'A_CURRENT',name:'稳健混合',complexity:3},
+  {id:'B_GAP1',name:'间隔比值',complexity:2},
+  {id:'C_MOMENTUM',name:'多窗动量',complexity:3},
+  {id:'D_UNDER',name:'低暴露',complexity:3},
+  {id:'E_GAP_CLOSE',name:'中位间隔贴合',complexity:1},
+  {id:'F_MID_OMIT',name:'中段遗漏',complexity:2},
+  {id:'G_ENSEMBLE',name:'多模型秩融合',complexity:4}
+];
+
+function rankAll49ByModel(modelId,hist=history){
+  const nums=Array.from({length:49},(_,i)=>i+1);
+  if(modelId==='G_ENSEMBLE'){
+    const rankSum=Object.fromEntries(nums.map(n=>[n,0]));
+    ['B_GAP1','C_MOMENTUM','E_GAP_CLOSE','A_CURRENT'].forEach(mid=>{
+      const ordered=[...nums].sort((a,b)=>numberModelScore(mid,b,hist)-numberModelScore(mid,a,hist)||a-b);
+      ordered.forEach((n,i)=>rankSum[n]+=i);
+    });
+    return nums.map(n=>({...numberFeatures(n,hist),score:200-rankSum[n]*2,modelId}))
+      .sort((a,b)=>b.score-a.score||b.omission-a.omission||a.num-b.num);
+  }
+  return nums.map(n=>({...numberFeatures(n,hist),score:numberModelScore(modelId,n,hist),modelId}))
+    .sort((a,b)=>b.score-a.score||b.omission-a.omission||a.num-b.num);
+}
+
+function buildNumberPositionMap(modelId,chronological,indices){
+  const pos=new Map();
+  indices.forEach(i=>{
+    const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period);
+    const ranked=rankAll49ByModel(modelId,train);
+    const actual=Number(chronological[i].number);
+    pos.set(i,ranked.findIndex(x=>Number(x.num)===actual)+1);
+  });
+  return pos;
+}
+
+function summarizeNumberPositions(posMap,indices,k){
+  let hits=0;
+  indices.forEach(i=>{if((posMap.get(i)||999)<=k)hits++});
+  const n=indices.length;
+  return {tests:n,hits,rate:n?hits/n:0,baseline:k/49};
+}
+
+function numberTierGate(k,cal,val,segments,totalTests){
+  const req={
+    10:{cal:.07,val:.07,seg:.02},
+    5:{cal:.05,val:.05,seg:.015},
+    2:{cal:.03,val:.03,seg:.01}
+  }[k];
+  const calEdge=cal.rate-cal.baseline;
+  const valEdge=val.rate-val.baseline;
+  const segEdges=segments.map(s=>s.rate-s.baseline);
+  const stable=segEdges.filter(x=>x>=0).length;
+  const enough=totalTests>=120 && val.tests>=60;
+  const pass=enough && calEdge>=req.cal && valEdge>=req.val && stable===3 && segEdges.every(x=>x>=req.seg);
+  const reason=!enough?'样本不足':
+    calEdge<req.cal?`校准优势不足${Math.round(req.cal*100)}pp`:
+    valEdge<req.val?`独立验证优势不足${Math.round(req.val*100)}pp`:
+    stable<3?'三个时间段未全部稳定':
+    segEdges.some(x=>x<req.seg)?'分段优势不足':'历史闸门通过，仍需前瞻盲测';
+  return {pass,reason,calEdge,valEdge,segEdges,stable};
+}
+
+function runGlobal49NumberLab(maxSteps=120){
+  const chronological=[...history].sort((a,b)=>a.period-b.period);
+  const start=Math.max(45,chronological.length-maxSteps);
+  const indices=[];for(let i=start;i<chronological.length;i++)indices.push(i);
+  const split=Math.floor(indices.length/2),calIdx=indices.slice(0,split),valIdx=indices.slice(split);
+  const segSize=Math.max(1,Math.floor(indices.length/3));
+  const segs=[indices.slice(0,segSize),indices.slice(segSize,segSize*2),indices.slice(segSize*2)];
+  const maps={};
+  V225_NUMBER_MODELS.forEach(m=>maps[m.id]=buildNumberPositionMap(m.id,chronological,indices));
+  const tiers={};
+  [10,5,2].forEach(k=>{
+    const rows=V225_NUMBER_MODELS.map(model=>{
+      const mp=maps[model.id];
+      const cal=summarizeNumberPositions(mp,calIdx,k);
+      const val=summarizeNumberPositions(mp,valIdx,k);
+      const all=summarizeNumberPositions(mp,indices,k);
+      const segments=segs.map(s=>summarizeNumberPositions(mp,s,k));
+      return {...model,cal,val,all,segments};
+    });
+    const ranked=[...rows].sort((a,b)=>
+      (b.cal.rate-b.cal.baseline)-(a.cal.rate-a.cal.baseline) ||
+      a.complexity-b.complexity || a.id.localeCompare(b.id)
+    );
+    const winner=ranked[0];
+    const gate=numberTierGate(k,winner.cal,winner.val,winner.segments,indices.length);
+    const candidates=rankAll49ByModel(winner.id,history).slice(0,k).map(x=>Number(x.num));
+    tiers[k]={k,rows,winner,candidates,...gate,calibrationTests:calIdx.length,validationTests:valIdx.length};
+  });
+  return {tests:indices.length,tiers};
+}
+
+function buildKillPositionMap(modelId,chronological,indices){
+  const pos=new Map();
+  indices.forEach(i=>{
+    const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period);
+    const ranked=killModelRows(modelId,train).sort((a,b)=>b.score-a.score||a.z.localeCompare(b.z));
+    const actual=chronological[i].zodiac;
+    pos.set(i,ranked.findIndex(x=>x.z===actual)+1);
+  });
+  return pos;
+}
+
+function summarizeKillPositions(posMap,indices,k){
+  let falseKills=0;
+  indices.forEach(i=>{if((posMap.get(i)||999)<=k)falseKills++});
+  const n=indices.length;
+  return {tests:n,falseKills,rate:n?falseKills/n:0,baseline:k/12};
+}
+
+function killTierGate(k,cal,val,segments,totalTests){
+  const reqImprove={1:.025,2:.035,3:.05}[k];
+  const calImprove=cal.baseline-cal.rate;
+  const valImprove=val.baseline-val.rate;
+  const segImprove=segments.map(s=>s.baseline-s.rate);
+  const stable=segImprove.filter(x=>x>=0).length;
+  const enough=totalTests>=120 && val.tests>=60;
+  const pass=enough && calImprove>=reqImprove && valImprove>=reqImprove && stable===3;
+  const reason=!enough?'样本不足':
+    calImprove<reqImprove?`校准误杀改善不足${(reqImprove*100).toFixed(1)}pp`:
+    valImprove<reqImprove?`独立验证误杀改善不足${(reqImprove*100).toFixed(1)}pp`:
+    stable<3?'三个时间段未全部稳定':
+    '历史闸门通过，仍需前瞻盲测';
+  return {pass,reason,calImprove,valImprove,segImprove,stable};
+}
+
+function runKillTierLab(maxSteps=120){
+  const chronological=[...history].sort((a,b)=>a.period-b.period);
+  const start=Math.max(45,chronological.length-maxSteps);
+  const indices=[];for(let i=start;i<chronological.length;i++)indices.push(i);
+  const split=Math.floor(indices.length/2),calIdx=indices.slice(0,split),valIdx=indices.slice(split);
+  const segSize=Math.max(1,Math.floor(indices.length/3));
+  const segs=[indices.slice(0,segSize),indices.slice(segSize,segSize*2),indices.slice(segSize*2)];
+  const maps={};
+  KILL_MODELS.forEach(m=>maps[m.id]=buildKillPositionMap(m.id,chronological,indices));
+  const tiers={};
+  [1,2,3].forEach(k=>{
+    const rows=KILL_MODELS.map(model=>{
+      const mp=maps[model.id];
+      const cal=summarizeKillPositions(mp,calIdx,k);
+      const val=summarizeKillPositions(mp,valIdx,k);
+      const all=summarizeKillPositions(mp,indices,k);
+      const segments=segs.map(s=>summarizeKillPositions(mp,s,k));
+      return {...model,cal,val,all,segments};
+    });
+    const ranked=[...rows].sort((a,b)=>
+      (b.cal.baseline-b.cal.rate)-(a.cal.baseline-a.cal.rate) ||
+      a.complexity-b.complexity || a.id.localeCompare(b.id)
+    );
+    const winner=ranked[0];
+    const gate=killTierGate(k,winner.cal,winner.val,winner.segments,indices.length);
+    const candidates=killModelRows(winner.id,history)
+      .sort((a,b)=>b.score-a.score||a.z.localeCompare(b.z)).slice(0,k).map(x=>x.z);
+    tiers[k]={k,rows,winner,candidates,...gate,calibrationTests:calIdx.length,validationTests:valIdx.length};
+  });
+  return {tests:indices.length,tiers};
+}
+
+let V225_LAB_CACHE={key:null,number:null,kill:null};
+function v225LabKey(){
+  return `${history.length}|${makeHistoryFingerprint()}|${BLIND_PROTOCOL_VERSION}`;
+}
+function getV225Labs(){
+  const key=v225LabKey();
+  if(V225_LAB_CACHE.key!==key){
+    V225_LAB_CACHE={key,number:runGlobal49NumberLab(120),kill:runKillTierLab(120)};
+  }
+  return V225_LAB_CACHE;
+}
+
+function labBallHtml(nums){
+  return nums.map(n=>`<span class="refnum ${color(n)}" style="margin:2px">${String(n).padStart(2,'0')}</span>`).join('');
+}
+function renderV225DecisionLabs(){
+  const nbox=document.getElementById('number49LabBody');
+  const kbox=document.getElementById('killTierLabBody');
+  if(!nbox||!kbox)return;
+  try{
+    const labs=getV225Labs(),pct=v=>(v*100).toFixed(1)+'%';
+    nbox.innerHTML=[10,5,2].map(k=>{
+      const t=labs.number.tiers[k];
+      const label=k===10?'候选10码':k===5?'精选5码':'实验2码';
+      return `<div class="btbox" style="margin-top:7px;background:${t.pass?'#ecfdf5':'#fff7ed'};border-color:${t.pass?'#a7f3d0':'#fed7aa'}">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><b>${label}</b> · ${t.winner.name}<br>
+          <span class="sub">校准 ${pct(t.winner.cal.rate)} / 基线 ${pct(t.winner.cal.baseline)} → 验证 ${pct(t.winner.val.rate)} / 基线 ${pct(t.winner.val.baseline)} · 稳定 ${t.stable}/3</span></div>
+          <span style="font-weight:900;color:${t.pass?'#047857':'#b45309'}">${t.pass?'历史闸门通过':'影子候选'}</span>
+        </div>
+        <div style="margin-top:7px">${labBallHtml(t.candidates)}</div>
+        <div class="sub" style="margin-top:5px">${t.reason}。${t.pass?'仍需V22.5.0正式前瞻盲测后才可称为可用。':'当前只用于观察，不作为正式推荐。'}</div>
+      </div>`;
+    }).join('');
+    kbox.innerHTML=[1,2,3].map(k=>{
+      const t=labs.kill.tiers[k],baseline=k/12;
+      return `<div class="btbox" style="margin-top:7px;background:${t.pass?'#ecfdf5':'#fff7ed'};border-color:${t.pass?'#a7f3d0':'#fed7aa'}">
+        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+          <div><b>Kill${k}</b> · ${t.winner.name}<br>
+          <span class="sub">校准误杀 ${pct(t.winner.cal.rate)} → 验证误杀 ${pct(t.winner.val.rate)} · 随机基线 ${pct(baseline)} · 稳定 ${t.stable}/3</span></div>
+          <span style="font-weight:900;color:${t.pass?'#047857':'#b91c1c'}">${t.pass?'历史闸门通过':'影子观察'}</span>
+        </div>
+        <div style="margin-top:7px;font-weight:900;color:#1e3a8a">${t.candidates.join('、')}</div>
+        <div class="sub" style="margin-top:5px">${t.reason}。${t.pass?'仍需正式盲测确认。':'不作为正式排除结论。'}</div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.error('V22.5.0决策实验室异常',e);
+    nbox.innerHTML='<div class="sub" style="color:#b91c1c">49号码实验室暂不可用；原综合输出不受影响。</div>';
+    kbox.innerHTML='<div class="sub" style="color:#b91c1c">Kill分档实验室暂不可用；原综合输出不受影响。</div>';
+  }
+}
+
 function numberPool(zodiacName){const nums=[];for(let n=1;n<=49;n++)if(zodiac(n)===zodiacName)nums.push(n);return nums;}
 function getReferenceNumbersByModel(zodiacName,hist=history,modelId='A_CURRENT'){
  const nums=numberPool(zodiacName);
@@ -1074,7 +1323,7 @@ function renderAlgorithmAudit(){
    verdictColor='#b91c1c'; verdictBg='#fef2f2';
  }
  box.innerHTML=`
-   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">替代模型实验室 · V22.4.8</div>
+   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">生肖/旧方案基线实验室 · Legacy</div>
    <div style="font-size:10px;color:#64748b;line-height:1.5;margin-bottom:9px">
      使用最近 ${r.tests} 个可回测期逐期训练→预测→揭晓。旧模型与多窗口模型使用完全相同的数据截面，避免偷看未来数据。
    </div>
@@ -1098,7 +1347,7 @@ function renderAlgorithmAudit(){
    ${(()=>{const c=runNumberModelCompetition(120);const pct2=v=>(v*100).toFixed(1)+'%';return `<div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#f8fbff;border:1px solid #dbeafe;font-size:9px;line-height:1.5;color:#475569"><b>2码模型竞争（前半段选型 / 后半段验收）</b><br>${c.rows.map(x=>`${x.name}：${pct2(x.cal.rate)} → ${pct2(x.val.rate)}`).join(' ｜ ')}<br><span style="color:${c.pass?'#047857':'#b45309'}">当前胜出：<b>${c.winner.name}</b>；${c.pass?'达到观察闸门，可显示2码':'未达到闸门，继续暂停2码'}</span></div>`})()}
    ${(()=>{const c=runKillModelCompetition(120);const pct2=v=>(v*100).toFixed(1)+'%';return `<div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#fff7ed;border:1px solid #fed7aa;font-size:9px;line-height:1.5;color:#475569"><b>Kill3替代模型竞争（前半段选型 / 后半段验收）</b><br>${c.rows.map(x=>`${x.name}：${pct2(x.cal.rate)} → ${pct2(x.val.rate)}`).join(' ｜ ')}<br><span style="color:${c.pass?'#047857':'#b91c1c'}">当前胜出：<b>${c.winner.name}</b>；${c.pass?'达到严格闸门，可输出Kill3':'未达到闸门，继续暂停Kill3'}</span></div>`})()}
    <div style="margin-top:7px;font-size:9px;color:#94a3b8;line-height:1.45">
-     注：历史回测只能用于比较模型，不证明未来开奖结果可预测。号码模型先用前半段校准集选型，再用后半段验证集验收；未通过闸门自动暂停。V22.4.7 起保留开奖前冻结的前瞻影子验证，前瞻样本不足30期时不得据此解锁任何模型。
+     注：历史回测只能用于比较模型，不证明未来开奖结果可预测。号码模型先用前半段校准集选型，再用后半段验证集验收；未通过闸门自动暂停。旧版起保留开奖前冻结的前瞻验证，前瞻样本不足30期时不得据此解锁任何模型。
    </div>`;
 }
 
@@ -1175,6 +1424,9 @@ function renderResultCore(){
    if(scoreBody){
      scoreBody.innerHTML=scores.map(x=>`<tr><td><b>${x.z}</b></td><td>${x.h.toFixed(1)}</td><td style="color:#4f46e5;font-weight:800">${x.a.toFixed(1)}</td><td><b>${x.t.toFixed(1)}</b></td></tr>`).join('');
    }
+
+   // V22.5.0 新实验室与原综合输出隔离；异常不得拖垮核心页面。
+   renderV225DecisionLabs();
 
    // 核心结果已经完成。回测与A/B验收延后执行，任何异常不得阻塞页面。
    setTimeout(()=>{
