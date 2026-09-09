@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.5.1 走势分析系统</title>
+<title>V22.5.2 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -105,7 +105,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.5.1</span> <span style="font-size:9px;color:#94a3b8">SIMPLE</span></h1><p>历史80分 + 图文辅助20分 · 双2码参考 · 平肖6肖 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.5.2</span> <span style="font-size:9px;color:#94a3b8">SIMPLE-FIX</span></h1><p>历史80分 + 图文辅助20分 · 双2码参考 · 平肖6肖 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -479,12 +479,12 @@ function tabs(id){
  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
  document.getElementById('bottomAction').classList.toggle('hide',id==='result');
- if(id==='result'){safeRenderResult();}
+ if(id==='history'){calcHistory();renderHistory();renderV224Overview();}
+ else if(id==='poetry'){renderAux();}
+ else if(id==='result'){safeRenderResult();}
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>tabs(b.dataset.tab));
 document.getElementById('goResult').onclick=()=>tabs('result');
-document.getElementById('freezeForwardBtn').onclick=()=>{if(confirm('确认在开奖前冻结本期影子快照？冻结后本期候选不可修改。'))freezeForwardShadow()};
-document.getElementById('exportForwardBtn').onclick=exportForwardLogs;
 document.getElementById('bulkToggle').onclick=()=>{
  document.getElementById('bulkArea').classList.toggle('show');
  document.getElementById('singleArea').classList.toggle('hide');
@@ -1497,7 +1497,11 @@ function safeRenderResult(){
    if(status){status.style.background='#fef2f2';status.style.borderColor='#fecaca';status.style.color='#b91c1c';status.textContent='✕ 综合引擎异常：'+String(e?.message||e);}
  }
 }
-function renderAll(){calcHistory();renderHistory();renderAux();safeRenderResult();renderForwardAudit()}
+function renderAll(){calcHistory();renderHistory();renderAux();safeRenderResult();renderV224Overview()}
+if(!Array.isArray(history)||history.length===0){
+ history=[...defaultHistory];
+ save();
+}
 renderAll();
 window.addEventListener('beforeunload',clearPreviewUrls);
 
