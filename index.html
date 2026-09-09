@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.4.7 走势分析系统</title>
+<title>V22.4.8 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -391,7 +391,7 @@ function renderForwardAudit(){
    `尚无开奖后对账样本。当前2码/Kill3严格闸门保持原状态，不因影子候选存在而解锁。`);
 }
 function exportForwardLogs(){
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.4.7',logs:forwardShadowLogs},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.4.8',logs:forwardShadowLogs},null,2)],{type:'application/json'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V22.4.7_forward_audit_logs.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},200);
 }
 function saveEvidenceSnapshot(){
@@ -827,6 +827,73 @@ function getKillCandidates(scores,hist=history){
  });
 }
 
+const KILL_MODELS=[
+ {id:'K_CURRENT',name:'现行证据排除',complexity:4},
+ {id:'K_RECENT',name:'近期暴露排除',complexity:1},
+ {id:'K_HOT',name:'短中窗偏热排除',complexity:2},
+ {id:'K_LOW_SCORE',name:'历史低分排除',complexity:1},
+ {id:'K_RECENT_SCORE',name:'暴露+低分融合',complexity:3},
+ {id:'K_ENSEMBLE',name:'三模型秩融合',complexity:4}
+];
+function killModelRows(modelId,hist=history){
+ const hs=calcHistoryFor(hist);
+ const base=Z.map(z=>{
+   const om=currentOmissionForZodiac(z,hist);
+   const c3=hist.slice(0,3).filter(h=>h.zodiac===z).length;
+   const c8=hist.slice(0,8).filter(h=>h.zodiac===z).length;
+   const c20=hist.slice(0,20).filter(h=>h.zodiac===z).length;
+   let score=0;
+   if(modelId==='K_CURRENT') score=(om===0?24:om<=2?14:0)+(c3>=2?20:0)+(c8>=2?12:0)+(c20>=3?8:0)+Math.max(0,(48-hs[z])*.75);
+   else if(modelId==='K_RECENT') score=(om===0?40:om===1?28:om===2?18:Math.max(0,10-om));
+   else if(modelId==='K_HOT') score=28*c3+12*c8+5*c20-Math.min(20,om);
+   else if(modelId==='K_LOW_SCORE') score=80-hs[z];
+   else if(modelId==='K_RECENT_SCORE') score=(om<=2?(3-om)*15:0)+Math.max(0,55-hs[z])*.8+8*c8;
+   return {z,score,om,c3,c8,c20};
+ });
+ if(modelId==='K_ENSEMBLE'){
+   const rankSum=Object.fromEntries(Z.map(z=>[z,0]));
+   ['K_RECENT','K_HOT','K_LOW_SCORE'].forEach(mid=>{
+     killModelRows(mid,hist).sort((a,b)=>b.score-a.score||a.z.localeCompare(b.z)).forEach((r,i)=>rankSum[r.z]+=i);
+   });
+   return base.map(r=>({...r,score:120-rankSum[r.z]*5}));
+ }
+ return base;
+}
+function getKillCandidatesByModel(scores,hist=history,modelId='K_CURRENT'){
+ const source=killModelRows(modelId,hist).sort((a,b)=>b.score-a.score||a.z.localeCompare(b.z)).slice(0,3);
+ return source.map(r=>({...r,confidence:r.score>=50?'高':r.score>=30?'中':'低',reasons:[modelId]}));
+}
+function evalKillModel(modelId,chronological,indices){
+ let misses=0;const outcomes=[];
+ indices.forEach(i=>{
+   const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period),actual=chronological[i];
+   const kills=getKillCandidatesByModel([],train,modelId).map(x=>x.z);
+   const miss=kills.includes(actual.zodiac)?1:0;misses+=miss;outcomes.push(miss);
+ });
+ return {tests:indices.length,misses,rate:indices.length?misses/indices.length:1,outcomes};
+}
+function runKillModelCompetition(maxSteps=120){
+ const chronological=[...history].sort((a,b)=>a.period-b.period);
+ const start=Math.max(45,chronological.length-maxSteps),indices=[];for(let i=start;i<chronological.length;i++)indices.push(i);
+ const split=Math.floor(indices.length/2),calIdx=indices.slice(0,split),valIdx=indices.slice(split);
+ const segSize=Math.max(1,Math.floor(indices.length/3));
+ const segs=[indices.slice(0,segSize),indices.slice(segSize,segSize*2),indices.slice(segSize*2)];
+ const rows=KILL_MODELS.map(model=>({
+   ...model,cal:evalKillModel(model.id,chronological,calIdx),val:evalKillModel(model.id,chronological,valIdx),all:evalKillModel(model.id,chronological,indices),segments:segs.map(x=>evalKillModel(model.id,chronological,x))
+ }));
+ // 只在前半段选择最低误杀模型；复杂度仅用于同分决胜。后半段完全独立验收。
+ const ranked=[...rows].sort((a,b)=>a.cal.rate-b.cal.rate||a.complexity-b.complexity||a.id.localeCompare(b.id));
+ const winner=ranked[0],calEdge=.25-winner.cal.rate,valEdge=.25-winner.val.rate;
+ const stableWins=winner.segments.filter(s=>s.rate<=.23).length;
+ const enough=indices.length>=120&&valIdx.length>=60;
+ const pass=enough&&winner.cal.rate<=.20&&winner.val.rate<=.20&&stableWins===3;
+ const gateReason=!enough?'样本不足':winner.cal.rate>.20?'校准误杀率高于20%':winner.val.rate>.20?'独立验证误杀率高于20%':stableWins<3?'三个时间段未全部≤23%':'通过';
+ return {tests:indices.length,rows,winner,calEdge,valEdge,stableWins,enough,pass,gateReason,calibrationTests:calIdx.length,validationTests:valIdx.length};
+}
+function activeKillCandidates(scores,hist=history){
+ try{const c=runKillModelCompetition(120);return getKillCandidatesByModel(scores,hist,c.winner?.id||'K_CURRENT')}catch(e){return getKillCandidates(scores,hist)}
+}
+
 function calcHistoryLegacyFor(hist){
  const hs={};
  const recent5=hist.slice(0,5);
@@ -873,22 +940,8 @@ function runNumberBacktest(maxSteps=120){
  };
 }
 function runKillBacktest(maxSteps=120){
- let tests=0,misKills=0;const chronological=[...history].sort((a,b)=>a.period-b.period);
- const start=Math.max(45,chronological.length-maxSteps), outcomes=[];
- for(let i=start;i<chronological.length;i++){
-   const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period),actual=chronological[i],hs=calcHistoryFor(train);
-   const rows=Z.map(z=>({z,h:hs[z],a:0,t:hs[z]}));
-   const kills=getKillCandidates(rows,train).map(x=>x.z);
-   const miss=kills.includes(actual.zodiac)?1:0; outcomes.push(miss); tests++;misKills+=miss;
- }
- const falseKillRate=tests?misKills/tests:0;
- const segSize=Math.max(1,Math.floor(outcomes.length/3));
- const segs=[outcomes.slice(0,segSize),outcomes.slice(segSize,segSize*2),outcomes.slice(segSize*2)].map(a=>({tests:a.length,rate:a.length?a.reduce((x,y)=>x+y,0)/a.length:1}));
- // 严格闸门：整体至少比25%随机基线好5pp，且三个时间段均优于随机至少2pp。
- const enough=tests>=120;
- const pass=enough && falseKillRate<=0.20 && segs.every(s=>s.tests>=30&&s.rate<=0.23);
- const gateReason=!enough?'样本不足':falseKillRate>0.20?'整体误杀率未低至20%或以下':segs.some(s=>s.rate>0.23)?'分段稳定性不足':'通过';
- return {tests,misKills,falseKillRate,segs,enough,pass,gateReason};
+ const comp=runKillModelCompetition(maxSteps),w=comp.winner;
+ return {tests:w.all.tests,misKills:w.all.misses,falseKillRate:w.all.rate,segs:w.segments.map(x=>({tests:x.tests,rate:x.rate})),enough:comp.enough,pass:comp.pass,gateReason:comp.gateReason,selectedModelId:w.id,selectedModelName:w.name,calibrationRate:w.cal.rate,validationRate:w.val.rate,stableWins:comp.stableWins,competition:comp};
 }
 
 function buildDecisionMeta(scores){
@@ -969,14 +1022,14 @@ function renderAlgorithmAudit(){
  let verdictText='新旧模型各有优劣，暂不自动淘汰任何一方。';
  let verdictColor='#92400e', verdictBg='#fffbeb';
  if(r.verdict==='MULTI_WIN'){
-   verdictText='V22.4.7 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
+   verdictText='V22.4.8 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
    verdictColor='#047857'; verdictBg='#ecfdf5';
  }else if(r.verdict==='LEGACY_WIN'){
    verdictText='旧模型在当前回测口径下占优；新模型不得仅因版本更新而强行替代。';
    verdictColor='#b91c1c'; verdictBg='#fef2f2';
  }
  box.innerHTML=`
-   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.7</div>
+   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">替代模型实验室 · V22.4.8</div>
    <div style="font-size:10px;color:#64748b;line-height:1.5;margin-bottom:9px">
      使用最近 ${r.tests} 个可回测期逐期训练→预测→揭晓。旧模型与多窗口模型使用完全相同的数据截面，避免偷看未来数据。
    </div>
@@ -994,12 +1047,13 @@ function renderAlgorithmAudit(){
    <div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#f8fafc;font-size:10px;line-height:1.55;color:#475569">
      <b>独立验收闸门：</b><br>
      号码2码：${(()=>{const n=runNumberBacktest(120);return `<b>${n.selectedModelName}</b> · 校准 ${(n.calibrationRate*100).toFixed(1)}% · 验证 ${(n.validationRate*100).toFixed(1)}% vs 基线 ${(n.validationBaseline*100).toFixed(1)}% · 分段稳定 ${n.stableWins}/3 · ${n.competition.gateReason} → <b style="color:${n.pass?'#047857':'#b45309'}">${n.pass?'严格通过':'未通过，暂停推荐'}</b>`})()}<br>
-     Kill3：${(()=>{const k=runKillBacktest(120);return `误杀率 ${(k.falseKillRate*100).toFixed(1)}% vs 随机25.0% · ${k.gateReason} → <b style="color:${k.pass?'#047857':'#b91c1c'}">${k.pass?'严格通过':'未通过，暂停输出'}</b>`})()}<br>
+     Kill3：${(()=>{const k=runKillBacktest(120);return `<b>${k.selectedModelName}</b> · 校准 ${(k.calibrationRate*100).toFixed(1)}% · 验证 ${(k.validationRate*100).toFixed(1)}% vs 随机25.0% · 分段稳定 ${k.stableWins}/3 · ${k.gateReason} → <b style="color:${k.pass?'#047857':'#b91c1c'}">${k.pass?'严格通过':'未通过，暂停输出'}</b>`})()}<br>
      图文辅助增益：<b style="color:#64748b">暂不能历史回测</b>（现有历史记录没有逐期保存当时的诗句、OCR文字与确认标签，不能伪造辅助层历史输入）。
    </div>
    ${(()=>{const c=runNumberModelCompetition(120);const pct2=v=>(v*100).toFixed(1)+'%';return `<div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#f8fbff;border:1px solid #dbeafe;font-size:9px;line-height:1.5;color:#475569"><b>2码模型竞争（前半段选型 / 后半段验收）</b><br>${c.rows.map(x=>`${x.name}：${pct2(x.cal.rate)} → ${pct2(x.val.rate)}`).join(' ｜ ')}<br><span style="color:${c.pass?'#047857':'#b45309'}">当前胜出：<b>${c.winner.name}</b>；${c.pass?'达到观察闸门，可显示2码':'未达到闸门，继续暂停2码'}</span></div>`})()}
+   ${(()=>{const c=runKillModelCompetition(120);const pct2=v=>(v*100).toFixed(1)+'%';return `<div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#fff7ed;border:1px solid #fed7aa;font-size:9px;line-height:1.5;color:#475569"><b>Kill3替代模型竞争（前半段选型 / 后半段验收）</b><br>${c.rows.map(x=>`${x.name}：${pct2(x.cal.rate)} → ${pct2(x.val.rate)}`).join(' ｜ ')}<br><span style="color:${c.pass?'#047857':'#b91c1c'}">当前胜出：<b>${c.winner.name}</b>；${c.pass?'达到严格闸门，可输出Kill3':'未达到闸门，继续暂停Kill3'}</span></div>`})()}
    <div style="margin-top:7px;font-size:9px;color:#94a3b8;line-height:1.45">
-     注：历史回测只能用于比较模型，不证明未来开奖结果可预测。号码模型先用前半段校准集选型，再用后半段验证集验收；未通过闸门自动暂停。V22.4.7 起新增开奖前冻结的前瞻影子验证，前瞻样本不足30期时不得据此解锁任何模型。
+     注：历史回测只能用于比较模型，不证明未来开奖结果可预测。号码模型先用前半段校准集选型，再用后半段验证集验收；未通过闸门自动暂停。V22.4.7 起保留开奖前冻结的前瞻影子验证，前瞻样本不足30期时不得据此解锁任何模型。
    </div>`;
 }
 
@@ -1047,7 +1101,7 @@ function renderResultCore(){
          :`<br><span style="color:#047857">历史层与图文层暂无明显强冲突。</span>`)+
        `<br><span style="color:#64748b">主历史模型：<b>${primary.name}</b>（由最近120期A/B回测闸门选择）。置信度只表示模型内部区分程度，不代表中奖概率。</span>`+
        `<br><span style="color:${numGate.pass?'#047857':'#b45309'}">号码2码验收：<b>${numGate.pass?'观察通过':'未通过'}</b>${numGate.selectedModelName?` · ${numGate.selectedModelName}`:''}${numGate.validationRate!=null?` · 验证 ${(numGate.validationRate*100).toFixed(1)}% / 基线 ${(numGate.validationBaseline*100).toFixed(1)}%`:''}</span>`+
-       `<br><span style="color:${killGate.pass?'#047857':'#b91c1c'}">Kill3验收：<b>${killGate.pass?'通过':'暂停输出'}</b>${killGate.falseKillRate!=null?` · 误杀率 ${(killGate.falseKillRate*100).toFixed(1)}% / 随机基线25.0%`:''}</span>`;
+       `<br><span style="color:${killGate.pass?'#047857':'#b91c1c'}">Kill3验收：<b>${killGate.pass?'通过':'暂停输出'}</b>${killGate.selectedModelName?` · ${killGate.selectedModelName}`:''}${killGate.falseKillRate!=null?` · 误杀率 ${(killGate.falseKillRate*100).toFixed(1)}% / 随机基线25.0%`:''}</span>`;
    }
 
    const top5El=document.getElementById('top5');
@@ -1063,7 +1117,7 @@ function renderResultCore(){
    }
 
    try{
-     const kills=getKillCandidates(scores);
+     const kills=activeKillCandidates(scores);
      const killEl=document.getElementById('kill3');
      if(killEl) killEl.innerHTML=killGate.pass?kills.map(k=>`<span class="killchip conf-${k.confidence==='高'?'high':k.confidence==='中'?'mid':'low'}">${k.z} · ${k.confidence}置信</span>`).join(''):`<span class="sub" style="color:#b91c1c">Kill3历史误杀率未优于25%随机基线，本期自动暂停。</span>`;
    }catch(e){
