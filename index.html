@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.4 走势分析系统</title>
+<title>V22.4.2 走势分析系统<span id="buildStamp" style="font-size:9px;color:#94a3b8;margin-left:6px">Build 22.4.2-FIX</span></title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 <style>
 :root{
@@ -106,7 +106,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4</span></h1><p>历史80分 + 本地图文辅助20分 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.2</span></h1><p>历史80分 + 本地图文辅助20分 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -719,14 +719,14 @@ function renderAlgorithmAudit(){
  let verdictText='新旧模型各有优劣，暂不自动淘汰任何一方。';
  let verdictColor='#92400e', verdictBg='#fffbeb';
  if(r.verdict==='MULTI_WIN'){
-   verdictText='V22.4 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
+   verdictText='V22.4.2 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
    verdictColor='#047857'; verdictBg='#ecfdf5';
  }else if(r.verdict==='LEGACY_WIN'){
    verdictText='旧模型在当前回测口径下占优；新模型不得仅因版本更新而强行替代。';
    verdictColor='#b91c1c'; verdictBg='#fef2f2';
  }
  box.innerHTML=`
-   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4</div>
+   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.2</div>
    <div style="font-size:10px;color:#64748b;line-height:1.5;margin-bottom:9px">
      使用最近 ${r.tests} 个可回测期逐期训练→预测→揭晓。旧模型与多窗口模型使用完全相同的数据截面，避免偷看未来数据。
    </div>
@@ -747,24 +747,78 @@ function renderAlgorithmAudit(){
 }
 
 function renderResult(){
- renderAlgorithmAudit();
- calcHistory();const aux=auxScores();const scores=Z.map(z=>({z,h:historyScores[z].score,a:aux[z],t:historyScores[z].score+aux[z],r:historyScores[z].reason})).sort((x,y)=>y.t-x.t);
- const meta=buildDecisionMeta(scores);
- document.getElementById('decisionMeta').innerHTML=`<b>本期模型状态：${meta.confidence}区分度</b> ｜ Top1/Top2差 ${meta.gap.toFixed(1)} 分`+
-   (meta.conflicts.length?`<br><span style="color:#b45309"><b>⚠ 历史/图文冲突：</b>${meta.conflicts.join('、')}。建议把这些生肖视为争议项，不机械追分。</span>`:`<br><span style="color:#047857">历史层与图文层暂无明显强冲突。</span>`)+
-   `<br><span style="color:#64748b">置信度只表示模型内部区分程度，不代表中奖概率。</span>`;
- document.getElementById('top5').innerHTML=scores.slice(0,5).map((x,i)=>{
-   const refs=getReferenceNumbers(x.z);
-   const refHtml=refs.map(r=>`<span class="refnum ${color(r.num)}" title="形态分 ${r.score.toFixed(1)}">${r.num}</span>`).join('');
-   const detail=refs.map(r=>`${r.num}：形态${r.score.toFixed(0)} / 遗漏${r.omission} / 20期${r.c20} / 40期${r.c40} / 80期${r.c80}`).join('；');
-   return `<div class="kpi"><div class="z">${x.z}</div><div style="min-width:0"><b>${['🥇 首选','🥈 次选','🥉 防守','🎖️ 边缘','🛟 备选'][i]}</b><div class="sub">历史：${x.h} ｜辅助：${x.a.toFixed(1)} ｜${x.r}</div><div class="refnums"><span class="sub">号码形态参考2码：</span>${refHtml}</div><div class="numdetail">${detail}</div></div><div class="score">${x.t.toFixed(1)}</div></div>`;
- }).join('');
- const kills=getKillCandidates(scores);
- document.getElementById('kill3').innerHTML=kills.map(k=>`<span class="killchip conf-${k.confidence==='高'?'high':k.confidence==='中'?'mid':'low'}">${k.z} · ${k.confidence}置信</span>`).join('');
- lastNumberBacktest=runNumberBacktest();
- lastKillBacktest=runKillBacktest();
- document.getElementById('killBacktest').innerHTML=`近 ${lastKillBacktest.tests} 期步进回测：排除组三误杀率 <b>${(lastKillBacktest.falseKillRate*100).toFixed(1)}%</b>（随机排除3/12的理论误杀基线为25%）。号码模块：Top5生肖命中 <b>${(lastNumberBacktest.zodiacRate*100).toFixed(1)}%</b>；在生肖已命中的样本中，2码命中特码 <b>${(lastNumberBacktest.conditionalNumRate*100).toFixed(1)}%</b>，同生肖随机取2码基线约 <b>${(lastNumberBacktest.randomConditionalBaseline*100).toFixed(1)}%</b>。这些仅是历史回测，不代表未来概率；后续算法只有在滚动回测持续优于基线时才值得保留。`;
- document.getElementById('scoreBody').innerHTML=scores.map(x=>`<tr><td><b>${x.z}</b></td><td>${x.h}</td><td style="color:#4f46e5;font-weight:800">${x.a.toFixed(1)}</td><td><b>${x.t.toFixed(1)}</b></td></tr>`).join('');
+ // 先渲染核心结果；任何回测/附加模块异常都不得再把整页打空。
+ try{
+   calcHistory();
+   const aux=auxScores();
+   const scores=Z.map(z=>({
+     z,
+     h:Number(historyScores[z]?.score||0),
+     a:Number(aux[z]||0),
+     t:Number(historyScores[z]?.score||0)+Number(aux[z]||0),
+     r:historyScores[z]?.reason||'常规'
+   })).sort((x,y)=>y.t-x.t);
+
+   const meta=buildDecisionMeta(scores);
+   const decisionEl=document.getElementById('decisionMeta');
+   if(decisionEl){
+     decisionEl.innerHTML=`<b>本期模型状态：${meta.confidence}区分度</b> ｜ Top1/Top2差 ${meta.gap.toFixed(1)} 分`+
+       (meta.conflicts.length
+         ?`<br><span style="color:#b45309"><b>⚠ 历史/图文冲突：</b>${meta.conflicts.join('、')}。建议把这些生肖视为争议项，不机械追分。</span>`
+         :`<br><span style="color:#047857">历史层与图文层暂无明显强冲突。</span>`)+
+       `<br><span style="color:#64748b">置信度只表示模型内部区分程度，不代表中奖概率。</span>`;
+   }
+
+   const top5El=document.getElementById('top5');
+   if(top5El){
+     top5El.innerHTML=scores.slice(0,5).map((x,i)=>{
+       let refs=[];
+       try{ refs=getReferenceNumbers(x.z)||[]; }catch(e){ console.error('号码参考计算异常',x.z,e); }
+       const refHtml=refs.map(r=>`<span class="refnum ${typeof color==='function'?color(r.num):''}" title="形态分 ${Number(r.score||0).toFixed(1)}">${r.num}</span>`).join('');
+       const detail=refs.map(r=>`${r.num}：形态${Number(r.score||0).toFixed(0)} / 遗漏${r.omission??'-'} / 20期${r.c20??'-'} / 40期${r.c40??'-'} / 80期${r.c80??'-'}`).join('；');
+       return `<div class="kpi"><div class="z">${x.z}</div><div style="min-width:0"><b>${['🥇 首选','🥈 次选','🥉 防守','🎖️ 边缘','🛟 备选'][i]}</b><div class="sub">历史：${x.h.toFixed(1)} ｜辅助：${x.a.toFixed(1)} ｜${x.r}</div><div class="refnums"><span class="sub">号码形态参考2码：</span>${refHtml||'<span class="sub">暂不可用</span>'}</div><div class="numdetail">${detail}</div></div><div class="score">${x.t.toFixed(1)}</div></div>`;
+     }).join('');
+   }
+
+   try{
+     const kills=getKillCandidates(scores);
+     const killEl=document.getElementById('kill3');
+     if(killEl) killEl.innerHTML=kills.map(k=>`<span class="killchip conf-${k.confidence==='高'?'high':k.confidence==='中'?'mid':'low'}">${k.z} · ${k.confidence}置信</span>`).join('');
+   }catch(e){
+     console.error('Kill3异常',e);
+     const killEl=document.getElementById('kill3');
+     if(killEl) killEl.innerHTML='<span class="sub" style="color:#b91c1c">排除模块暂不可用，但不影响Top5。</span>';
+   }
+
+   const scoreBody=document.getElementById('scoreBody');
+   if(scoreBody){
+     scoreBody.innerHTML=scores.map(x=>`<tr><td><b>${x.z}</b></td><td>${x.h.toFixed(1)}</td><td style="color:#4f46e5;font-weight:800">${x.a.toFixed(1)}</td><td><b>${x.t.toFixed(1)}</b></td></tr>`).join('');
+   }
+
+   // 步进回测是附加信息，独立容错。
+   const kb=document.getElementById('killBacktest');
+   try{
+     lastNumberBacktest=runNumberBacktest();
+     lastKillBacktest=runKillBacktest();
+     if(kb) kb.innerHTML=`近 ${lastKillBacktest.tests} 期步进回测：排除组三误杀率 <b>${(lastKillBacktest.falseKillRate*100).toFixed(1)}%</b>（随机排除3/12理论基线25%）。号码模块：Top5生肖命中 <b>${(lastNumberBacktest.zodiacRate*100).toFixed(1)}%</b>；生肖已命中时2码命中特码 <b>${(lastNumberBacktest.conditionalNumRate*100).toFixed(1)}%</b>；同生肖随机2码基线约 <b>${(lastNumberBacktest.randomConditionalBaseline*100).toFixed(1)}%</b>。仅为历史回测。`;
+   }catch(e){
+     console.error('步进回测异常',e);
+     if(kb) kb.innerHTML='回测模块暂不可用；核心综合结果已正常计算。';
+   }
+
+   // A/B算法验收最后执行。失败只显示错误，不再阻断核心结果。
+   try{
+     renderAlgorithmAudit();
+   }catch(e){
+     console.error('A/B算法验收异常',e);
+     const audit=document.getElementById('algorithmAuditBox');
+     if(audit) audit.innerHTML=`<div style="font-size:12px;font-weight:900;color:#b91c1c">算法验收模块暂不可用</div><div style="font-size:10px;color:#64748b;margin-top:4px">核心Top5、号码参考、排除观察和评分表仍可正常使用。错误：${String(e?.message||e)}</div>`;
+   }
+ }catch(e){
+   console.error('综合输出核心异常',e);
+   const top5El=document.getElementById('top5');
+   if(top5El) top5El.innerHTML=`<div style="padding:12px;border:1px solid #fecaca;background:#fef2f2;border-radius:12px;color:#b91c1c;font-size:11px"><b>综合输出计算发生异常</b><br>${String(e?.message||e)}</div>`;
+ }
 }
 function renderAll(){calcHistory();renderHistory();renderAux();renderResult()}
 renderAll();
@@ -777,7 +831,7 @@ function ensureV224UI(){
   if(!document.getElementById('v224Brand')){
     const brand=document.createElement('div');
     brand.id='v224Brand'; brand.className='v224-head';
-    brand.innerHTML=`<div class="v224-head-title">📊 V22.4 走势分析系统 <span class="v224-badge">验收版</span></div>
+    brand.innerHTML=`<div class="v224-head-title">📊 V22.4.2 走势分析系统 <span class="v224-badge">验收版</span></div>
       <div class="v224-head-sub">多模型 · A/B 回测 · 图文证据 · 独立号码模型</div>`;
     body.insertBefore(brand,body.firstChild);
   }
