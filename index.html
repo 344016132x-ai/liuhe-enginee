@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.4.8 走势分析系统</title>
+<title>V22.4.8.1 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -105,7 +105,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.7</span> <span style="font-size:9px;color:#94a3b8">FORWARD-AUDIT</span></h1><p>历史80分 + 图文辅助20分 · 严格闸门 · 前瞻影子验证 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.8.1</span> <span style="font-size:9px;color:#94a3b8">MODEL-LAB</span></h1><p>历史80分 + 图文辅助20分 · 严格闸门 · 前瞻影子验证 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -391,8 +391,8 @@ function renderForwardAudit(){
    `尚无开奖后对账样本。当前2码/Kill3严格闸门保持原状态，不因影子候选存在而解锁。`);
 }
 function exportForwardLogs(){
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.4.8',logs:forwardShadowLogs},null,2)],{type:'application/json'});
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V22.4.7_forward_audit_logs.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},200);
+ const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.4.8.1',logs:forwardShadowLogs},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V22.4.8.1_forward_audit_logs.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},200);
 }
 function saveEvidenceSnapshot(){
  const manual=(document.getElementById('clueText')?.value||'').trim();
