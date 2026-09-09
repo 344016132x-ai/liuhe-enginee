@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.4.5 走势分析系统</title>
+<title>V22.4.6 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -105,7 +105,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.5</span> <span style="font-size:9px;color:#94a3b8">NUM-LAB</span></h1><p>历史80分 + 图文辅助20分 · 号码模型竞争闸门 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.4.6</span> <span style="font-size:9px;color:#94a3b8">NUM-LAB</span></h1><p>历史80分 + 图文辅助20分 · 号码模型竞争闸门 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -269,6 +269,19 @@ let currentObjectUrls=[];
 let explicitExcluded=new Set();
 let lastNumberBacktest=null;
 let lastKillBacktest=null;
+let evidenceLogs=[];
+try{evidenceLogs=JSON.parse(localStorage.getItem('v22_evidence_logs')||'[]');if(!Array.isArray(evidenceLogs))evidenceLogs=[]}catch(e){evidenceLogs=[]}
+function saveEvidenceSnapshot(){
+ const manual=(document.getElementById('clueText')?.value||'').trim();
+ const ocr=(document.getElementById('ocrText')?.value||'').trim();
+ const targetPeriod=history.length?Math.max(...history.map(x=>Number(x.period)||0))+1:null;
+ const snap={savedAt:new Date().toISOString(),targetPeriod,manual,ocr,tags:[...selectedImageTags],suggestedTags:[...suggestedImageTags],excluded:[...explicitExcluded],weights:{...weights}};
+ const same=evidenceLogs.findIndex(x=>x.targetPeriod===targetPeriod);
+ if(same>=0)evidenceLogs[same]=snap;else evidenceLogs.push(snap);
+ evidenceLogs=evidenceLogs.slice(-250);
+ localStorage.setItem('v22_evidence_logs',JSON.stringify(evidenceLogs));
+ return snap;
+}
 try {
   const savedWeights=JSON.parse(localStorage.getItem('v22_aux_weights')||'null');
   if(savedWeights && typeof savedWeights==='object') Z.forEach(z=>weights[z]=Math.max(0,Number(savedWeights[z])||0));
@@ -547,8 +560,10 @@ function parseClue(){
  });
  explicitExcluded.forEach(z=>weights[z]=0);
  save();
+ const evidenceSnap=saveEvidenceSnapshot();
  document.getElementById('evidenceBox').classList.remove('hide');
  document.getElementById('evidenceList').innerHTML=(ev.length?ev:['未识别出结构化线索。可修改 OCR/文字或采用系统建议标签后重试。']).map(x=>'<div class="evi">'+x+'</div>').join('');
+ ev.push('【证据日志】已保存第 '+(evidenceSnap.targetPeriod??'?')+' 期解析快照，开奖后可用于前瞻验收。');
  renderAux(); safeRenderResult();
 }
 document.getElementById('parseBtn').onclick=parseClue;
@@ -642,9 +657,14 @@ function runNumberModelCompetition(maxSteps=120){
  const ranked=[...rows].sort((a,b)=>b.cal.rate-a.cal.rate||a.complexity-b.complexity||a.id.localeCompare(b.id));
  const winner=ranked[0];
  const stableWins=winner.segments.filter(s=>s.rate>=s.baseline).length;
- const enough=indices.length>=90 && valIdx.length>=40;
- const pass=enough && winner.cal.rate>=winner.cal.baseline && winner.val.rate>=winner.val.baseline+0.03 && stableWins>=2;
- return {tests:indices.length,rows,winner,stableWins,enough,pass,calibrationTests:calIdx.length,validationTests:valIdx.length};
+ const calEdge=winner.cal.rate-winner.cal.baseline;
+ const valEdge=winner.val.rate-winner.val.baseline;
+ const segmentEdges=winner.segments.map(s=>s.rate-s.baseline);
+ // 严格闸门：拒绝把几个百分点的小样本波动包装成有效推荐。
+ const enough=indices.length>=120 && valIdx.length>=60;
+ const pass=enough && calEdge>=0.05 && valEdge>=0.05 && stableWins===3 && segmentEdges.every(x=>x>=0.02);
+ const gateReason=!enough?'样本不足':calEdge<0.05?'校准优势不足5pp':valEdge<0.05?'独立验证优势不足5pp':stableWins<3?'三个时间段未全部稳定':segmentEdges.some(x=>x<0.02)?'分段优势不足2pp':'通过';
+ return {tests:indices.length,rows,winner,stableWins,enough,pass,gateReason,calEdge,valEdge,segmentEdges,calibrationTests:calIdx.length,validationTests:valIdx.length};
 }
 function getReferenceNumbers(zodiacName,hist=history){
  // 实际展示使用当前全量历史闸门选出的候选；历史回测内部必须显式指定模型，避免递归与偷看未来。
@@ -727,14 +747,21 @@ function runNumberBacktest(maxSteps=120){
 }
 function runKillBacktest(maxSteps=120){
  let tests=0,misKills=0;const chronological=[...history].sort((a,b)=>a.period-b.period);
- const start=Math.max(45,chronological.length-maxSteps);
+ const start=Math.max(45,chronological.length-maxSteps), outcomes=[];
  for(let i=start;i<chronological.length;i++){
    const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period),actual=chronological[i],hs=calcHistoryFor(train);
    const rows=Z.map(z=>({z,h:hs[z],a:0,t:hs[z]}));
    const kills=getKillCandidates(rows,train).map(x=>x.z);
-   tests++;if(kills.includes(actual.zodiac))misKills++;
+   const miss=kills.includes(actual.zodiac)?1:0; outcomes.push(miss); tests++;misKills+=miss;
  }
- return {tests,misKills,falseKillRate:tests?misKills/tests:0};
+ const falseKillRate=tests?misKills/tests:0;
+ const segSize=Math.max(1,Math.floor(outcomes.length/3));
+ const segs=[outcomes.slice(0,segSize),outcomes.slice(segSize,segSize*2),outcomes.slice(segSize*2)].map(a=>({tests:a.length,rate:a.length?a.reduce((x,y)=>x+y,0)/a.length:1}));
+ // 严格闸门：整体至少比25%随机基线好5pp，且三个时间段均优于随机至少2pp。
+ const enough=tests>=120;
+ const pass=enough && falseKillRate<=0.20 && segs.every(s=>s.tests>=30&&s.rate<=0.23);
+ const gateReason=!enough?'样本不足':falseKillRate>0.20?'整体误杀率未低至20%或以下':segs.some(s=>s.rate>0.23)?'分段稳定性不足':'通过';
+ return {tests,misKills,falseKillRate,segs,enough,pass,gateReason};
 }
 
 function buildDecisionMeta(scores){
@@ -815,14 +842,14 @@ function renderAlgorithmAudit(){
  let verdictText='新旧模型各有优劣，暂不自动淘汰任何一方。';
  let verdictColor='#92400e', verdictBg='#fffbeb';
  if(r.verdict==='MULTI_WIN'){
-   verdictText='V22.4.5 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
+   verdictText='V22.4.6 多窗口模型在当前回测口径下占优，可继续作为主模型观察。';
    verdictColor='#047857'; verdictBg='#ecfdf5';
  }else if(r.verdict==='LEGACY_WIN'){
    verdictText='旧模型在当前回测口径下占优；新模型不得仅因版本更新而强行替代。';
    verdictColor='#b91c1c'; verdictBg='#fef2f2';
  }
  box.innerHTML=`
-   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.5</div>
+   <div style="font-size:13px;font-weight:900;color:#111827;margin-bottom:7px">算法验收中心 · V22.4.6</div>
    <div style="font-size:10px;color:#64748b;line-height:1.5;margin-bottom:9px">
      使用最近 ${r.tests} 个可回测期逐期训练→预测→揭晓。旧模型与多窗口模型使用完全相同的数据截面，避免偷看未来数据。
    </div>
@@ -839,8 +866,8 @@ function renderAlgorithmAudit(){
    </div>
    <div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#f8fafc;font-size:10px;line-height:1.55;color:#475569">
      <b>独立验收闸门：</b><br>
-     号码2码：${(()=>{const n=runNumberBacktest(120);return `<b>${n.selectedModelName}</b> · 校准 ${(n.calibrationRate*100).toFixed(1)}% · 验证 ${(n.validationRate*100).toFixed(1)}% vs 基线 ${(n.validationBaseline*100).toFixed(1)}% · 分段稳定 ${n.stableWins}/3 → <b style="color:${n.pass?'#047857':'#b45309'}">${n.pass?'观察通过':'未通过，暂停推荐'}</b>`})()}<br>
-     Kill3：${(()=>{const k=runKillBacktest(120);return `误杀率 ${(k.falseKillRate*100).toFixed(1)}% vs 随机25.0% → <b style="color:${k.falseKillRate<.25?'#047857':'#b91c1c'}">${k.falseKillRate<.25?'通过':'未通过，暂停输出'}</b>`})()}<br>
+     号码2码：${(()=>{const n=runNumberBacktest(120);return `<b>${n.selectedModelName}</b> · 校准 ${(n.calibrationRate*100).toFixed(1)}% · 验证 ${(n.validationRate*100).toFixed(1)}% vs 基线 ${(n.validationBaseline*100).toFixed(1)}% · 分段稳定 ${n.stableWins}/3 · ${n.competition.gateReason} → <b style="color:${n.pass?'#047857':'#b45309'}">${n.pass?'严格通过':'未通过，暂停推荐'}</b>`})()}<br>
+     Kill3：${(()=>{const k=runKillBacktest(120);return `误杀率 ${(k.falseKillRate*100).toFixed(1)}% vs 随机25.0% · ${k.gateReason} → <b style="color:${k.pass?'#047857':'#b91c1c'}">${k.pass?'严格通过':'未通过，暂停输出'}</b>`})()}<br>
      图文辅助增益：<b style="color:#64748b">暂不能历史回测</b>（现有历史记录没有逐期保存当时的诗句、OCR文字与确认标签，不能伪造辅助层历史输入）。
    </div>
    ${(()=>{const c=runNumberModelCompetition(120);const pct2=v=>(v*100).toFixed(1)+'%';return `<div style="margin-top:7px;padding:8px 9px;border-radius:9px;background:#f8fbff;border:1px solid #dbeafe;font-size:9px;line-height:1.5;color:#475569"><b>2码模型竞争（前半段选型 / 后半段验收）</b><br>${c.rows.map(x=>`${x.name}：${pct2(x.cal.rate)} → ${pct2(x.val.rate)}`).join(' ｜ ')}<br><span style="color:${c.pass?'#047857':'#b45309'}">当前胜出：<b>${c.winner.name}</b>；${c.pass?'达到观察闸门，可显示2码':'未达到闸门，继续暂停2码'}</span></div>`})()}
@@ -863,7 +890,7 @@ function numberGateStatus(){
  catch(e){return {pass:false,error:String(e)}}
 }
 function killGateStatus(){
- try{const r=runKillBacktest(120);return {...r,pass:r.falseKillRate<0.25};}
+ try{const r=runKillBacktest(120);return {...r,pass:r.pass===true};}
  catch(e){return {pass:false,error:String(e)}}
 }
 
