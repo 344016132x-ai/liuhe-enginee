@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.6.4 走势分析系统</title>
+<title>V22.6.5 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -101,7 +101,7 @@ body{background:var(--bg)!important;color:#0f172a}
   #algorithmAuditBox{font-size:10px}
 }
 
-/* V22.6.4 compact mobile refinements */
+/* V22.6.5 defender true-forward audit integration */
 #top5{max-width:372px;margin:0 auto}
 .kpi{padding:9px 10px;margin-bottom:7px;border-radius:12px}
 .kpi .z{width:36px;height:36px;font-size:17px;margin-right:9px;flex:0 0 36px}
@@ -122,7 +122,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.4</span> <span style="font-size:9px;color:#94a3b8">UI-FIX</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.5</span> <span style="font-size:9px;color:#94a3b8">FORWARD</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -244,8 +244,15 @@ body{background:var(--bg)!important;color:#0f172a}
   </div>
   <div id="pingmaForwardBody" style="margin-top:8px"></div>
   <div style="display:flex;gap:7px;margin-top:8px">
-    <button id="freezePingmaForwardBtn" type="button" class="smallbtn" style="flex:1">冻结下一期 A/B</button>
+    <button id="freezePingmaForwardBtn" type="button" class="smallbtn" style="flex:1">冻结下一期 A/B + 防守</button>
     <button id="exportPingmaForwardBtn" type="button" class="smallbtn" style="flex:1">导出前向记录</button>
+  </div>
+  <div id="pingmaDefenderForward" style="margin-top:9px;padding-top:9px;border-top:1px dashed #dbeafe">
+    <div class="row between" style="gap:8px;align-items:center">
+      <b style="font-size:12px">🛡️ 第7观察位 · 真正前向</b>
+      <span id="pingmaDefenderForwardStatus" style="font-size:10px;font-weight:900;color:#475569;background:#f1f5f9;border-radius:999px;padding:4px 7px">0期</span>
+    </div>
+    <div id="pingmaDefenderForwardBody" style="margin-top:7px"></div>
   </div>
 </div>
 
@@ -276,7 +283,7 @@ body{background:var(--bg)!important;color:#0f172a}
         <input id="pingmaSpecialInput" type="number" min="1" max="49" placeholder="1-49" style="width:100%;margin-top:4px">
       </label>
       <div id="pingmaEditHint" class="sub" style="margin-top:7px;color:#b45309"></div>
-<div class="sub" style="margin-top:5px;color:#475569">前向验证规则：新增下一期开奖前先点击上方“冻结下一期 A/B”；修改旧历史记录不会补造过去预测。</div>
+<div class="sub" style="margin-top:5px;color:#475569">前向验证规则：新增下一期开奖前先点击上方“冻结下一期 A/B + 防守”；修改旧历史记录不会补造过去预测。</div>
       <div style="display:flex;gap:8px;margin-top:9px">
         <button id="savePingmaBtn" type="button" class="primary" style="flex:1">保存平码数据</button>
         <button id="cancelPingmaEditBtn" type="button" class="smallbtn" style="display:none">取消修改</button>
@@ -1195,7 +1202,9 @@ function savePingmaRecord(){
    const isEditing=!!pingmaEditKey;
    if(!isEditing){
       const pending=getValidPendingForward();
-      if(!pending)throw new Error('前向验证硬闸门：请先点击“冻结下一期 A/B”，再录入本期开奖。');
+      if(!pending)throw new Error('前向验证硬闸门：请先点击“冻结下一期 A/B + 防守”，再录入本期开奖。');
+      const defenderPending=getValidPendingDefenderForward();
+      if(!defenderPending)throw new Error('防守双轨硬闸门：本期尚未冻结原防守肖与容量标准化防守肖。');
    }
    const sv=document.getElementById('pingmaSpecialInput').value;
    const special=sv===''?null:Number(sv),specialZ=sv===''?'':pingmaZodiacForNumber(Number(sv),date);
@@ -1210,8 +1219,8 @@ function savePingmaRecord(){
    }
    savePingmaDb();
    const justSaved=PINGMA_DB.find(x=>x.date===date&&Number(x.period)===Number(period));
-   if(!isEditing && justSaved) reconcilePingmaForward(justSaved);
-   cancelPingmaEdit(); renderPingmaSix(); renderPingmaHistory(document.getElementById('pingmaSearchInput').value); renderPingmaForward();
+   if(!isEditing && justSaved){ reconcilePingmaForward(justSaved); reconcilePingmaDefenderForward(justSaved); }
+   cancelPingmaEdit(); renderPingmaSix(); renderPingmaHistory(document.getElementById('pingmaSearchInput').value); renderPingmaForward(); renderPingmaDefenderForward();
    recommendNextPingmaPeriod(true);
    msg.style.color='#047857'; msg.textContent='保存成功，平码数据库已更新';
  }catch(e){msg.style.color='#b91c1c';msg.textContent=e.message||String(e);}
@@ -1241,6 +1250,153 @@ function modelBOrder(db){
   });
   const f=pingmaZScore(freq),s=pingmaZScore(support);
   return Z.map(z=>({z,score:f[z]+0.35*s[z]})).sort((a,b)=>b.score-a.score).map(x=>x.z);
+}
+const PINGMA_DEFENDER_FORWARD_KEY='v2265_pingma_defender_true_forward';
+
+function pingmaCapacityForZodiac(z,date){
+  // 1-49按12生肖分配：当年生肖5个号码，其余生肖4个。
+  if(date>='2025-01-29' && date<'2026-02-17')return z==='蛇'?5:4;
+  if(date>='2026-02-17' && date<'2027-02-06')return z==='马'?5:4;
+  throw new Error('当前日期超出已配置生肖年映射范围，不能生成容量标准化防守肖');
+}
+function modelANormalizedOrder(db){
+  const recent=db.slice(-20),freq=Object.fromEntries(Z.map(z=>[z,0]));
+  recent.forEach(r=>{
+    (r.zodiacs||[]).forEach(z=>{
+      if(!(z in freq))return;
+      const cap=pingmaCapacityForZodiac(z,r.date);
+      freq[z]+= (49/12)/cap;
+    });
+  });
+  const omission={};
+  Z.forEach(z=>{
+    let d=db.length+1;
+    for(let k=0;k<db.length;k++){
+      if((db[db.length-1-k].zodiacs||[]).includes(z)){d=k;break;}
+    }
+    omission[z]=d;
+  });
+  const f=pingmaZScore(freq),o=pingmaZScore(omission);
+  return Z.map(z=>({z,score:f[z]+0.25*o[z]})).sort((a,b)=>b.score-a.score).map(x=>x.z);
+}
+function buildMembershipHistory(db,normalized=false){
+  const rows=[];
+  for(let end=1;end<=db.length;end++){
+    const hist=db.slice(0,end);
+    const order=(normalized?modelANormalizedOrder(hist):modelAOrder(hist));
+    rows.push(new Set(order.slice(0,6)));
+  }
+  return rows;
+}
+function defenderFromDb(db,normalized=false){
+  if(!db.length)return null;
+  const order=(normalized?modelANormalizedOrder(db):modelAOrder(db));
+  const outside=order.slice(6);
+  const memberships=buildMembershipHistory(db,normalized);
+  const streak=(z)=>{
+    let s=0;
+    // streak before next target = count consecutive latest historical periods where z was excluded.
+    for(let i=memberships.length-1;i>=0;i--){
+      if(!memberships[i].has(z))s++; else break;
+    }
+    return s;
+  };
+  const eligible=outside.filter(z=>streak(z)>=4);
+  const z=eligible.length?eligible[0]:order[8];
+  return {z,rank:order.indexOf(z)+1,streak:streak(z),eligible:eligible.length>0,order};
+}
+function loadPingmaDefenderForward(){
+  try{
+    const x=JSON.parse(localStorage.getItem(PINGMA_DEFENDER_FORWARD_KEY)||'[]');
+    return Array.isArray(x)?x:[];
+  }catch(e){return [];}
+}
+let PINGMA_DEFENDER_FORWARD=loadPingmaDefenderForward();
+function savePingmaDefenderForward(){
+  localStorage.setItem(PINGMA_DEFENDER_FORWARD_KEY,JSON.stringify(PINGMA_DEFENDER_FORWARD.slice(-300)));
+}
+function getValidPendingDefenderForward(){
+  const latest=PINGMA_DB[PINGMA_DB.length-1];
+  if(!latest)return null;
+  return [...PINGMA_DEFENDER_FORWARD].reverse().find(x=>
+    x.status==='frozen' && x.baseDate===latest.date && Number(x.basePeriod)===Number(latest.period)
+  )||null;
+}
+function freezePingmaDefenderForward(){
+  const latest=PINGMA_DB[PINGMA_DB.length-1];
+  if(!latest)return null;
+  const existing=getValidPendingDefenderForward();
+  if(existing)return existing;
+  const original=defenderFromDb(PINGMA_DB,false);
+  const normalized=defenderFromDb(PINGMA_DB,true);
+  const rec={
+    id:Date.now()+1,
+    protocol:'V22.6.5-DEFENDER-TRUE-FORWARD',
+    frozenAt:new Date().toISOString(),
+    baseDate:latest.date,
+    basePeriod:Number(latest.period),
+    original:{z:original.z,rank:original.rank,streak:original.streak},
+    normalized:{z:normalized.z,rank:normalized.rank,streak:normalized.streak},
+    status:'frozen',targetDate:'',targetPeriod:null,
+    actual:null,originalHit:null,normalizedHit:null
+  };
+  PINGMA_DEFENDER_FORWARD.push(rec);
+  savePingmaDefenderForward();
+  return rec;
+}
+function reconcilePingmaDefenderForward(record){
+  const f=getValidPendingDefenderForward();
+  if(!f)return;
+  if(Number(f.basePeriod)>=Number(record.period))return;
+  const actual=[...(record.zodiacs||[])];
+  if(record.specialZ)actual.push(record.specialZ);
+  f.targetDate=record.date;
+  f.targetPeriod=Number(record.period);
+  f.actual=actual;
+  f.originalHit=actual.includes(f.original.z)?1:0;
+  f.normalizedHit=actual.includes(f.normalized.z)?1:0;
+  f.status='reconciled';
+  f.reconciledAt=new Date().toISOString();
+  savePingmaDefenderForward();
+}
+function defenderForwardStats(){
+  const done=PINGMA_DEFENDER_FORWARD.filter(x=>x.status==='reconciled' && Number.isFinite(x.originalHit) && Number.isFinite(x.normalizedHit));
+  const n=done.length;
+  const next=n<30?30:n<50?50:n<100?100:null;
+  if(!n)return {n:0,o:0,s:0,ow:0,sw:0,tie:0,next};
+  const o=done.reduce((a,x)=>a+x.originalHit,0)/n;
+  const s=done.reduce((a,x)=>a+x.normalizedHit,0)/n;
+  const ow=done.filter(x=>x.originalHit>x.normalizedHit).length;
+  const sw=done.filter(x=>x.normalizedHit>x.originalHit).length;
+  const tie=done.filter(x=>x.originalHit===x.normalizedHit).length;
+  return {n,o,s,ow,sw,tie,next};
+}
+function renderPingmaDefenderForward(){
+  const body=document.getElementById('pingmaDefenderForwardBody');
+  const status=document.getElementById('pingmaDefenderForwardStatus');
+  if(!body||!status)return;
+  const st=defenderForwardStats();
+  status.textContent=`${st.n}期`;
+  const pending=getValidPendingDefenderForward();
+  let html='';
+  if(pending){
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+      <div style="padding:8px;border:1px solid #e2e8f0;border-radius:10px"><div class="sub">原防守 · 已冻结</div><b style="font-size:18px">${pending.original.z}</b><div class="sub">A外第${pending.original.rank}位 · 连续排除${pending.original.streak}期</div></div>
+      <div style="padding:8px;border:1px solid #bfdbfe;border-radius:10px;background:#f8fbff"><div class="sub">容量标准化 · 已冻结</div><b style="font-size:18px">${pending.normalized.z}</b><div class="sub">标准A外第${pending.normalized.rank}位 · 连续排除${pending.normalized.streak}期</div></div>
+    </div>
+    <div class="sub" style="margin-top:5px">基于 ${pending.baseDate} / 第${pending.basePeriod}期之后；开奖后自动对账。</div>`;
+  }else{
+    try{
+      const o=defenderFromDb(PINGMA_DB,false),n=defenderFromDb(PINGMA_DB,true);
+      html+=`<div class="sub">尚未冻结下一期。当前候选：原防守 <b>${o.z}</b> ｜ 标准化 <b>${n.z}</b></div>`;
+    }catch(e){
+      html+=`<div class="sub" style="color:#b91c1c">${e.message||e}</div>`;
+    }
+  }
+  html+=st.n
+    ?`<div class="sub" style="margin-top:6px">真正前向 ${st.n}期 · 原防守 ${(st.o*100).toFixed(1)}% · 标准化 ${(st.s*100).toFixed(1)}% · 原胜${st.ow}/标准胜${st.sw}/平${st.tie}${st.next?` · 下个检查点${st.next}期`:''}</div>`
+    :`<div class="sub" style="margin-top:6px">真正前向 0期 · 首个只读检查点30期；历史回测不计入。</div>`;
+  body.innerHTML=html;
 }
 function nextPingmaTarget(){
   const latest=PINGMA_DB[PINGMA_DB.length-1];
@@ -1278,9 +1434,11 @@ function freezePingmaForward(){
   const latest=PINGMA_DB[PINGMA_DB.length-1];
   const existing=getValidPendingForward();
   if(existing){
+    freezePingmaDefenderForward();
     renderPingmaForward();
+    renderPingmaDefenderForward();
     const msg=document.getElementById('pingmaInputMsg');
-    if(msg){msg.style.color='#b45309';msg.textContent='当前下一期A/B已经冻结，无需重复冻结。';}
+    if(msg){msg.style.color='#b45309';msg.textContent='当前下一期A/B与防守双轨已经冻结，无需重复冻结。';}
     return existing;
   }
   const rec={
@@ -1297,7 +1455,9 @@ function freezePingmaForward(){
   };
   PINGMA_FORWARD.push(rec);
   savePingmaForward();
+  freezePingmaDefenderForward();
   renderPingmaForward();
+  renderPingmaDefenderForward();
   return rec;
 }
 function reconcilePingmaForward(record){
@@ -1356,14 +1516,15 @@ function renderPingmaForward(){
 }
 function exportPingmaForward(){
   const payload={
-    version:'V22.6.4',
-    metric:'6平+1特，7球覆盖率',
-    records:PINGMA_FORWARD
+    version:'V22.6.5',
+    metric:'6平+1特，7球覆盖率；防守肖=7球中至少出现1次',
+    abRecords:PINGMA_FORWARD,
+    defenderRecords:PINGMA_DEFENDER_FORWARD
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='V22.6.4_平码AB前向记录.json';a.click();
+  a.href=url;a.download='V22.6.5_平码AB与防守双轨前向记录.json';a.click();
   setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 
@@ -1386,6 +1547,7 @@ function bindPingmaManager(){
  const fb=document.getElementById('freezePingmaForwardBtn'); if(fb)fb.onclick=freezePingmaForward;
  const eb=document.getElementById('exportPingmaForwardBtn'); if(eb)eb.onclick=exportPingmaForward;
  renderPingmaForward();
+ renderPingmaDefenderForward();
 }
 
 function renderV225DecisionLabs(){
