@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.6.5 走势分析系统</title>
+<title>V22.6.6 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -101,7 +101,7 @@ body{background:var(--bg)!important;color:#0f172a}
   #algorithmAuditBox{font-size:10px}
 }
 
-/* V22.6.5 defender true-forward audit integration */
+/* V22.6.6 special Top5 true-forward integration */
 #top5{max-width:372px;margin:0 auto}
 .kpi{padding:9px 10px;margin-bottom:7px;border-radius:12px}
 .kpi .z{width:36px;height:36px;font-size:17px;margin-right:9px;flex:0 0 36px}
@@ -122,7 +122,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.5</span> <span style="font-size:9px;color:#94a3b8">FORWARD</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.6</span> <span style="font-size:9px;color:#94a3b8">FORWARD</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -244,7 +244,7 @@ body{background:var(--bg)!important;color:#0f172a}
   </div>
   <div id="pingmaForwardBody" style="margin-top:8px"></div>
   <div style="display:flex;gap:7px;margin-top:8px">
-    <button id="freezePingmaForwardBtn" type="button" class="smallbtn" style="flex:1">冻结下一期 A/B + 防守</button>
+    <button id="freezePingmaForwardBtn" type="button" class="smallbtn" style="flex:1">冻结下一期 · 全部前向</button>
     <button id="exportPingmaForwardBtn" type="button" class="smallbtn" style="flex:1">导出前向记录</button>
   </div>
   <div id="pingmaDefenderForward" style="margin-top:9px;padding-top:9px;border-top:1px dashed #dbeafe">
@@ -253,6 +253,13 @@ body{background:var(--bg)!important;color:#0f172a}
       <span id="pingmaDefenderForwardStatus" style="font-size:10px;font-weight:900;color:#475569;background:#f1f5f9;border-radius:999px;padding:4px 7px">0期</span>
     </div>
     <div id="pingmaDefenderForwardBody" style="margin-top:7px"></div>
+  </div>
+  <div id="specialTop5Forward" style="margin-top:9px;padding-top:9px;border-top:1px dashed #dbeafe">
+    <div class="row between" style="gap:8px;align-items:center">
+      <b style="font-size:12px">🎯 特码 Top5 · 真正前向</b>
+      <span id="specialTop5ForwardStatus" style="font-size:10px;font-weight:900;color:#475569;background:#f1f5f9;border-radius:999px;padding:4px 7px">0期</span>
+    </div>
+    <div id="specialTop5ForwardBody" style="margin-top:7px"></div>
   </div>
 </div>
 
@@ -279,11 +286,11 @@ body{background:var(--bg)!important;color:#0f172a}
       <label class="sub" style="display:block;margin-top:8px">6个平码号码
         <input id="pingmaNumbersInput" placeholder="例如：03 09 18 27 36 45" style="width:100%;margin-top:4px">
       </label>
-      <label class="sub" style="display:block;margin-top:8px">特码（可选）
+      <label class="sub" style="display:block;margin-top:8px">特码（新期开奖必填）
         <input id="pingmaSpecialInput" type="number" min="1" max="49" placeholder="1-49" style="width:100%;margin-top:4px">
       </label>
       <div id="pingmaEditHint" class="sub" style="margin-top:7px;color:#b45309"></div>
-<div class="sub" style="margin-top:5px;color:#475569">前向验证规则：新增下一期开奖前先点击上方“冻结下一期 A/B + 防守”；修改旧历史记录不会补造过去预测。</div>
+<div class="sub" style="margin-top:5px;color:#475569">前向验证规则：新增下一期开奖前先点击上方“冻结下一期 · 全部前向”；新期开奖必须录入6平+1特；修改旧历史记录不会补造过去预测。</div>
       <div style="display:flex;gap:8px;margin-top:9px">
         <button id="savePingmaBtn" type="button" class="primary" style="flex:1">保存平码数据</button>
         <button id="cancelPingmaEditBtn" type="button" class="smallbtn" style="display:none">取消修改</button>
@@ -1200,14 +1207,20 @@ function savePingmaRecord(){
    if(!date||!Number.isInteger(period)||period<=0)throw new Error('日期或期数无效');
    const zodiacs=numbers.map(n=>pingmaZodiacForNumber(n,date));
    const isEditing=!!pingmaEditKey;
+   let pending=null,defenderPending=null,specialPending=null;
    if(!isEditing){
-      const pending=getValidPendingForward();
-      if(!pending)throw new Error('前向验证硬闸门：请先点击“冻结下一期 A/B + 防守”，再录入本期开奖。');
-      const defenderPending=getValidPendingDefenderForward();
+      pending=getValidPendingForward();
+      if(!pending)throw new Error('前向验证硬闸门：请先点击“冻结下一期 · 全部前向”，再录入本期开奖。');
+      defenderPending=getValidPendingDefenderForward();
       if(!defenderPending)throw new Error('防守双轨硬闸门：本期尚未冻结原防守肖与容量标准化防守肖。');
+      specialPending=getValidPendingSpecialTop5Forward();
+      if(!specialPending)throw new Error('特码Top5硬闸门：本期尚未冻结正向/负向Top5与spread状态。');
    }
    const sv=document.getElementById('pingmaSpecialInput').value;
-   const special=sv===''?null:Number(sv),specialZ=sv===''?'':pingmaZodiacForNumber(Number(sv),date);
+   if(!isEditing && sv==='')throw new Error('特码Top5真正前向要求：新增开奖现场必须录入特码号码（1-49）。');
+   const special=sv===''?null:Number(sv);
+   if(sv!=='' && (!Number.isInteger(special)||special<1||special>49))throw new Error('特码号码必须是1-49整数');
+   const specialZ=sv===''?'':pingmaZodiacForNumber(special,date);
    if(pingmaEditKey){
       const idx=PINGMA_DB.findIndex(x=>x.date===pingmaEditKey.date&&Number(x.period)===Number(pingmaEditKey.period));
       if(idx<0)throw new Error('找不到要修改的记录');
@@ -1215,14 +1228,20 @@ function savePingmaRecord(){
       PINGMA_DB[idx]={date,year:Number(date.slice(0,4)),period,numbers,zodiacs,special,specialZ};
    }else{
       if(PINGMA_DB.some(x=>x.date===date&&Number(x.period)===period))throw new Error('该日期/期数已存在，请点修改');
+      if(date<=pending.baseDate || Number(period)<=Number(pending.basePeriod))throw new Error('新期开奖必须晚于当前冻结基准期');
       PINGMA_DB.push({date,year:Number(date.slice(0,4)),period,numbers,zodiacs,special,specialZ});
    }
    savePingmaDb();
    const justSaved=PINGMA_DB.find(x=>x.date===date&&Number(x.period)===Number(period));
-   if(!isEditing && justSaved){ reconcilePingmaForward(justSaved); reconcilePingmaDefenderForward(justSaved); }
-   cancelPingmaEdit(); renderPingmaSix(); renderPingmaHistory(document.getElementById('pingmaSearchInput').value); renderPingmaForward(); renderPingmaDefenderForward();
+   if(!isEditing && justSaved){
+     reconcilePingmaForward(justSaved,pending);
+     reconcilePingmaDefenderForward(justSaved,defenderPending);
+     reconcileSpecialTop5Forward(justSaved,specialPending);
+   }
+   cancelPingmaEdit(); renderPingmaSix(); renderPingmaHistory(document.getElementById('pingmaSearchInput').value);
+   renderPingmaForward(); renderPingmaDefenderForward(); renderSpecialTop5Forward();
    recommendNextPingmaPeriod(true);
-   msg.style.color='#047857'; msg.textContent='保存成功，平码数据库已更新';
+   msg.style.color='#047857'; msg.textContent='保存成功；A/B、防守、特码Top5真正前向已完成对账';
  }catch(e){msg.style.color='#b91c1c';msg.textContent=e.message||String(e);}
 }
 
@@ -1344,8 +1363,8 @@ function freezePingmaDefenderForward(){
   savePingmaDefenderForward();
   return rec;
 }
-function reconcilePingmaDefenderForward(record){
-  const f=getValidPendingDefenderForward();
+function reconcilePingmaDefenderForward(record,frozenOverride=null){
+  const f=frozenOverride||getValidPendingDefenderForward();
   if(!f)return;
   if(Number(f.basePeriod)>=Number(record.period))return;
   const actual=[...(record.zodiacs||[])];
@@ -1398,6 +1417,272 @@ function renderPingmaDefenderForward(){
     :`<div class="sub" style="margin-top:6px">真正前向 0期 · 首个只读检查点30期；历史回测不计入。</div>`;
   body.innerHTML=html;
 }
+
+const SPECIAL_TOP5_FORWARD_KEY='v2266_special_top5_true_forward';
+const SPECIAL_TOP5_PROTOCOL='SPECIAL-TOP5-FORWARD-V1';
+const SPECIAL_TOP5_C=0.03;
+const SPECIAL_TOP5_SPREAD_THRESHOLD=0.07;
+
+function specialArrayZScore(arr){
+  const m=arr.reduce((a,b)=>a+b,0)/arr.length;
+  const sd=Math.sqrt(arr.reduce((a,x)=>a+(x-m)*(x-m),0)/arr.length)||1;
+  return arr.map(x=>(x-m)/sd);
+}
+function specialSigmoid(x){
+  const z=Math.max(-40,Math.min(40,x));
+  return 1/(1+Math.exp(-z));
+}
+function specialSolveLinear(A,b){
+  const n=A.length;
+  const M=A.map((row,i)=>row.slice().concat([b[i]]));
+  for(let col=0;col<n;col++){
+    let pivot=col;
+    for(let r=col+1;r<n;r++)if(Math.abs(M[r][col])>Math.abs(M[pivot][col]))pivot=r;
+    if(Math.abs(M[pivot][col])<1e-12)throw new Error('特码Top5矩阵求解失败：模型数值不可逆');
+    if(pivot!==col){const t=M[pivot];M[pivot]=M[col];M[col]=t;}
+    const pv=M[col][col];
+    for(let j=col;j<=n;j++)M[col][j]/=pv;
+    for(let r=0;r<n;r++){
+      if(r===col)continue;
+      const f=M[r][col];
+      if(Math.abs(f)<1e-18)continue;
+      for(let j=col;j<=n;j++)M[r][j]-=f*M[col][j];
+    }
+  }
+  return M.map(r=>r[n]);
+}
+function specialCapacity(z,date){return pingmaCapacityForZodiac(z,date);}
+function specialBuildArrays(db){
+  if(db.length<240)throw new Error('特码Top5至少需要240期完整历史后才能冻结');
+  const zIndex=Object.fromEntries(Z.map((z,i)=>[z,i]));
+  const sp=db.map(r=>{
+    if(!r.specialZ || !(r.specialZ in zIndex))throw new Error(`特码Top5历史不完整：${r.date} 第${r.period}期缺少特码生肖`);
+    const a=Array(12).fill(0);a[zIndex[r.specialZ]]=1;return a;
+  });
+  const ping=db.map(r=>{
+    const a=Array(12).fill(0);
+    (r.zodiacs||[]).forEach(z=>{if(z in zIndex)a[zIndex[z]]++;});
+    return a;
+  });
+  const pingPresence=ping.map(a=>a.map(v=>v>0?1:0));
+  const spNorm=db.map((r,i)=>sp[i].map((v,z)=>v*((49/12)/specialCapacity(Z[z],r.date))));
+  return {zIndex,sp,ping,pingPresence,spNorm};
+}
+function specialOmission(db,sp,i){
+  return Z.map((_,z)=>{
+    for(let k=1;k<=i;k++)if(sp[i-k][z]>0)return k-1;
+    return i+1;
+  });
+}
+function specialTransition(db,spNorm,zIndex,i,w){
+  const out=Array(12).fill(0);
+  const prev=zIndex[db[i-1].specialZ];
+  let den=0;
+  for(let j=Math.max(1,i-w);j<i;j++){
+    if(zIndex[db[j-1].specialZ]===prev){
+      for(let z=0;z<12;z++)out[z]+=spNorm[j][z];
+      den++;
+    }
+  }
+  return den?out.map(x=>x/den):out;
+}
+function specialSumRows(mat,a,b){
+  const out=Array(12).fill(0);
+  for(let i=Math.max(0,a);i<b;i++)for(let z=0;z<12;z++)out[z]+=mat[i][z];
+  return out;
+}
+function specialFeatureMatrix(db,cache,i){
+  const {zIndex,sp,ping,pingPresence,spNorm}=cache;
+  const f5=specialSumRows(sp,i-5,i),f10=specialSumRows(sp,i-10,i),f20=specialSumRows(sp,i-20,i);
+  const f40=specialSumRows(sp,i-40,i),f80=specialSumRows(sp,i-80,i);
+  const nf10=specialSumRows(spNorm,i-10,i),nf20=specialSumRows(spNorm,i-20,i);
+  const om=specialOmission(db,sp,i);
+  const pf10=specialSumRows(ping,i-10,i),pf20=specialSumRows(ping,i-20,i);
+  const pp10=specialSumRows(pingPresence,i-10,i),pp20=specialSumRows(pingPresence,i-20,i);
+  const t40=specialTransition(db,spNorm,zIndex,i,40),t80=specialTransition(db,spNorm,zIndex,i,80),t120=specialTransition(db,spNorm,zIndex,i,120);
+  const prevSame=Array(12).fill(0);prevSame[zIndex[db[i-1].specialZ]]=1;
+  const prevPing=pingPresence[i-1];
+  return Z.map((z,k)=>[
+    specialCapacity(z,db[Math.min(i,db.length-1)].date),
+    f5[k],f10[k],f20[k],f40[k],f80[k],nf10[k],nf20[k],om[k],
+    prevSame[k],prevPing[k],pf10[k],pf20[k],pp10[k],pp20[k],
+    t40[k],t80[k],t120[k],f10[k]/10-f40[k]/40
+  ]);
+}
+function specialFitLogistic(X,y,C=SPECIAL_TOP5_C){
+  const n=X.length,p=X[0].length;
+  const mu=Array(p).fill(0),sd=Array(p).fill(0);
+  for(let j=0;j<p;j++)mu[j]=X.reduce((s,r)=>s+r[j],0)/n;
+  for(let j=0;j<p;j++){
+    sd[j]=Math.sqrt(X.reduce((s,r)=>s+(r[j]-mu[j])*(r[j]-mu[j]),0)/n);
+    if(sd[j]<1e-12)sd[j]=1;
+  }
+  const A=X.map(r=>r.map((v,j)=>(v-mu[j])/sd[j]).concat([1]));
+  const q=p+1,beta=Array(q).fill(0);
+  let iters=0;
+  for(let it=0;it<40;it++){
+    const grad=beta.slice();
+    const H=Array.from({length:q},(_,r)=>Array.from({length:q},(_,c)=>r===c?1:0));
+    for(let i=0;i<n;i++){
+      let z=0;for(let j=0;j<q;j++)z+=A[i][j]*beta[j];
+      const pr=specialSigmoid(z),w=pr*(1-pr),err=pr-y[i];
+      for(let j=0;j<q;j++)grad[j]+=C*A[i][j]*err;
+      for(let r=0;r<q;r++)for(let c=0;c<q;c++)H[r][c]+=C*w*A[i][r]*A[i][c];
+    }
+    const step=specialSolveLinear(H,grad);
+    let mx=0;
+    for(let j=0;j<q;j++){beta[j]-=step[j];mx=Math.max(mx,Math.abs(step[j]));}
+    iters=it+1;
+    if(mx<1e-9)break;
+  }
+  return {mu,sd,beta,iters};
+}
+function specialPredictLogistic(rows,fit){
+  return rows.map(r=>{
+    let z=fit.beta[fit.beta.length-1];
+    for(let j=0;j<r.length;j++)z+=((r[j]-fit.mu[j])/fit.sd[j])*fit.beta[j];
+    return specialSigmoid(z);
+  });
+}
+function specialNegativeSnapshot(db){
+  const cache=specialBuildArrays(db);
+  const X=[],y=[];
+  for(let i=120;i<db.length;i++){
+    const fm=specialFeatureMatrix(db,cache,i);
+    for(let z=0;z<12;z++){X.push(fm[z]);y.push(cache.zIndex[db[i].specialZ]===z?1:0);}
+  }
+  const fit=specialFitLogistic(X,y,SPECIAL_TOP5_C);
+  const target=specialFeatureMatrix(db,cache,db.length);
+  const risk=specialPredictLogistic(target,fit);
+  const order=Z.map((z,i)=>({z,i,r:risk[i]})).sort((a,b)=>b.r-a.r||a.i-b.i);
+  return {
+    negativeTop5:order.slice(0,5).map(x=>x.z),
+    negativeExclude7:order.slice(5).map(x=>x.z),
+    boundary6:order[5].z,
+    spread:Math.max(...risk)-Math.min(...risk),
+    risks:Object.fromEntries(order.map(x=>[x.z,x.r])),
+    iterations:fit.iters
+  };
+}
+function specialPositiveSnapshot(db){
+  const cache=specialBuildArrays(db),i=db.length;
+  const f20=specialSumRows(cache.spNorm,i-20,i);
+  const f10=specialSumRows(cache.spNorm,i-10,i);
+  const tr=specialTransition(db,cache.spNorm,cache.zIndex,i,120);
+  const a=specialArrayZScore(f20),b=specialArrayZScore(tr),c=specialArrayZScore(f10);
+  return Z.map((z,k)=>({z,i:k,s:a[k]+0.1*b[k]-0.5*c[k]}))
+    .sort((x,y)=>y.s-x.s||x.i-y.i).slice(0,5).map(x=>x.z);
+}
+function specialTop5CapacityBase(pick,date){
+  return pick.reduce((s,z)=>s+specialCapacity(z,date),0)/49;
+}
+function buildSpecialTop5Snapshot(db){
+  const latest=db[db.length-1];
+  if(!latest)throw new Error('特码Top5没有历史基准');
+  const neg=specialNegativeSnapshot(db);
+  const positiveTop5=specialPositiveSnapshot(db);
+  const state=neg.spread>=SPECIAL_TOP5_SPREAD_THRESHOLD?'ON':'OFF';
+  const selectedTop5=state==='ON'?neg.negativeTop5:positiveTop5;
+  return {
+    protocol:SPECIAL_TOP5_PROTOCOL,
+    baseDate:latest.date,
+    basePeriod:Number(latest.period),
+    negativeTop5:neg.negativeTop5,
+    negativeExclude7:neg.negativeExclude7,
+    boundary6:neg.boundary6,
+    positiveTop5,
+    spread:neg.spread,
+    state,
+    selectedTop5,
+    negativeCapacityBase:specialTop5CapacityBase(neg.negativeTop5,latest.date),
+    positiveCapacityBase:specialTop5CapacityBase(positiveTop5,latest.date),
+    selectedCapacityBase:specialTop5CapacityBase(selectedTop5,latest.date),
+    iterations:neg.iterations
+  };
+}
+function loadSpecialTop5Forward(){
+  try{const x=JSON.parse(localStorage.getItem(SPECIAL_TOP5_FORWARD_KEY)||'[]');return Array.isArray(x)?x:[];}
+  catch(e){return [];}
+}
+let SPECIAL_TOP5_FORWARD=loadSpecialTop5Forward();
+function saveSpecialTop5Forward(){
+  localStorage.setItem(SPECIAL_TOP5_FORWARD_KEY,JSON.stringify(SPECIAL_TOP5_FORWARD.slice(-300)));
+}
+function getValidPendingSpecialTop5Forward(){
+  const latest=PINGMA_DB[PINGMA_DB.length-1];
+  if(!latest)return null;
+  return [...SPECIAL_TOP5_FORWARD].reverse().find(x=>
+    x.status==='frozen' && x.baseDate===latest.date && Number(x.basePeriod)===Number(latest.period)
+  )||null;
+}
+function reconcileSpecialTop5Forward(record,frozenOverride=null){
+  const f=frozenOverride||getValidPendingSpecialTop5Forward();
+  if(!f || !record.specialZ)return;
+  if(record.date<=f.baseDate || Number(record.period)<=Number(f.basePeriod))return;
+  f.targetDate=record.date;
+  f.targetPeriod=Number(record.period);
+  f.actualSpecial=record.special;
+  f.actualSpecialZ=record.specialZ;
+  f.negativeHit=f.negativeTop5.includes(record.specialZ)?1:0;
+  f.positiveHit=f.positiveTop5.includes(record.specialZ)?1:0;
+  f.selectedHit=f.selectedTop5.includes(record.specialZ)?1:0;
+  f.negativeExcess=f.negativeHit-f.negativeCapacityBase;
+  f.positiveExcess=f.positiveHit-f.positiveCapacityBase;
+  f.selectedExcess=f.selectedHit-f.selectedCapacityBase;
+  f.status='reconciled';
+  f.reconciledAt=new Date().toISOString();
+  saveSpecialTop5Forward();
+}
+function specialTop5Stats(){
+  const done=SPECIAL_TOP5_FORWARD.filter(x=>x.status==='reconciled'&&Number.isFinite(x.negativeHit)&&Number.isFinite(x.positiveHit)&&Number.isFinite(x.selectedHit));
+  const n=done.length,next=n<30?30:n<50?50:n<100?100:null;
+  if(!n)return {n:0,neg:0,pos:0,sel:0,on:0,next};
+  return {
+    n,
+    neg:done.reduce((s,x)=>s+x.negativeHit,0)/n,
+    pos:done.reduce((s,x)=>s+x.positiveHit,0)/n,
+    sel:done.reduce((s,x)=>s+x.selectedHit,0)/n,
+    on:done.filter(x=>x.state==='ON').length,
+    next
+  };
+}
+function renderSpecialTop5Forward(){
+  const body=document.getElementById('specialTop5ForwardBody');
+  const badge=document.getElementById('specialTop5ForwardStatus');
+  if(!body||!badge)return;
+  const st=specialTop5Stats();
+  badge.textContent=`${st.n}期`;
+  let pending=getValidPendingSpecialTop5Forward();
+  let html='';
+  if(pending){
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+      <div style="padding:8px;border:1px solid #bfdbfe;border-radius:10px;background:#f8fbff">
+        <div class="sub">负向Top5 · 已冻结</div>
+        <div style="font-weight:900;margin-top:3px">${pending.negativeTop5.join('、')}</div>
+      </div>
+      <div style="padding:8px;border:1px solid #e2e8f0;border-radius:10px">
+        <div class="sub">正向Top5 · 已冻结</div>
+        <div style="font-weight:900;margin-top:3px">${pending.positiveTop5.join('、')}</div>
+      </div>
+    </div>
+    <div class="sub" style="margin-top:6px">spread <b>${pending.spread.toFixed(4)}</b> · 状态 <b>${pending.state}</b> · 状态采用：<b>${pending.selectedTop5.join('、')}</b></div>
+    <div class="sub" style="margin-top:3px">第6边界观察肖：<b>${pending.boundary6}</b>（仅观察，不加入Top5）</div>
+    <div class="sub" style="margin-top:3px">基于 ${pending.baseDate} / 第${pending.basePeriod}期之后；开奖后只读对账。</div>`;
+  }else{
+    try{
+      const snap=buildSpecialTop5Snapshot(PINGMA_DB);
+      html+=`<div class="sub">尚未冻结。当前研究候选：负向 <b>${snap.negativeTop5.join('、')}</b> ｜ 正向 <b>${snap.positiveTop5.join('、')}</b></div>
+      <div class="sub" style="margin-top:3px">spread ${snap.spread.toFixed(4)} · ${snap.state} ｜ 第6观察 <b>${snap.boundary6}</b></div>`;
+    }catch(e){
+      html+=`<div class="sub" style="color:#b91c1c">${e.message||e}</div>`;
+    }
+  }
+  html+=st.n
+    ?`<div class="sub" style="margin-top:6px">真正前向 ${st.n}期 · 负向 ${(st.neg*100).toFixed(1)}% · 正向 ${(st.pos*100).toFixed(1)}% · 状态采用 ${(st.sel*100).toFixed(1)}% · ON ${st.on}期${st.next?` · 下个检查点${st.next}期`:''}</div>`
+    :`<div class="sub" style="margin-top:6px">真正前向 0期 · 首个只读检查点30期；历史研究不计入。</div>`;
+  body.innerHTML=html;
+}
+
 function nextPingmaTarget(){
   const latest=PINGMA_DB[PINGMA_DB.length-1];
   return {
@@ -1428,40 +1713,67 @@ function getValidPendingForward(){
 }
 
 function freezePingmaForward(){
-  const t=nextPingmaTarget();
-  const a=modelAOrder(PINGMA_DB).slice(0,6);
-  const b=modelBOrder(PINGMA_DB).slice(0,6);
   const latest=PINGMA_DB[PINGMA_DB.length-1];
-  const existing=getValidPendingForward();
-  if(existing){
-    freezePingmaDefenderForward();
-    renderPingmaForward();
-    renderPingmaDefenderForward();
+  if(!latest)return null;
+  const existingAB=getValidPendingForward();
+  const existingDef=getValidPendingDefenderForward();
+  const existingSpecial=getValidPendingSpecialTop5Forward();
+
+  try{
+    // First compute every missing snapshot. Nothing is written until all computations succeed.
+    const a=existingAB?existingAB.A:modelAOrder(PINGMA_DB).slice(0,6);
+    const b=existingAB?existingAB.B:modelBOrder(PINGMA_DB).slice(0,6);
+    const original=existingDef?existingDef.original:defenderFromDb(PINGMA_DB,false);
+    const normalized=existingDef?existingDef.normalized:defenderFromDb(PINGMA_DB,true);
+    const specialSnap=existingSpecial?existingSpecial:buildSpecialTop5Snapshot(PINGMA_DB);
+    const now=Date.now();
+
+    if(!existingAB){
+      PINGMA_FORWARD.push({
+        id:now,frozenAt:new Date().toISOString(),baseDate:latest.date,basePeriod:Number(latest.period),
+        targetDate:'',targetPeriod:null,A:a,B:b,status:'frozen',actual:null,Acoverage:null,Bcoverage:null,winner:null
+      });
+    }
+    if(!existingDef){
+      PINGMA_DEFENDER_FORWARD.push({
+        id:now+1,protocol:'V22.6.5-DEFENDER-TRUE-FORWARD',frozenAt:new Date().toISOString(),
+        baseDate:latest.date,basePeriod:Number(latest.period),
+        original:{z:original.z,rank:original.rank,streak:original.streak},
+        normalized:{z:normalized.z,rank:normalized.rank,streak:normalized.streak},
+        status:'frozen',targetDate:'',targetPeriod:null,actual:null,originalHit:null,normalizedHit:null
+      });
+    }
+    if(!existingSpecial){
+      SPECIAL_TOP5_FORWARD.push({
+        id:now+2,protocol:SPECIAL_TOP5_PROTOCOL,frozenAt:new Date().toISOString(),
+        baseDate:latest.date,basePeriod:Number(latest.period),
+        negativeTop5:specialSnap.negativeTop5,negativeExclude7:specialSnap.negativeExclude7,
+        boundary6:specialSnap.boundary6,positiveTop5:specialSnap.positiveTop5,
+        spread:specialSnap.spread,state:specialSnap.state,selectedTop5:specialSnap.selectedTop5,
+        negativeCapacityBase:specialSnap.negativeCapacityBase,positiveCapacityBase:specialSnap.positiveCapacityBase,
+        selectedCapacityBase:specialSnap.selectedCapacityBase,iterations:specialSnap.iterations,
+        status:'frozen',targetDate:'',targetPeriod:null,actualSpecial:null,actualSpecialZ:'',
+        negativeHit:null,positiveHit:null,selectedHit:null
+      });
+    }
+    savePingmaForward();savePingmaDefenderForward();saveSpecialTop5Forward();
+    renderPingmaForward();renderPingmaDefenderForward();renderSpecialTop5Forward();
     const msg=document.getElementById('pingmaInputMsg');
-    if(msg){msg.style.color='#b45309';msg.textContent='当前下一期A/B与防守双轨已经冻结，无需重复冻结。';}
-    return existing;
+    if(msg){
+      msg.style.color=(existingAB&&existingDef&&existingSpecial)?'#b45309':'#047857';
+      msg.textContent=(existingAB&&existingDef&&existingSpecial)
+        ?'当前下一期全部前向轨道已经冻结，无需重复冻结。'
+        :'已冻结下一期：A/B + 防守双轨 + 特码Top5三轨。';
+    }
+    return getValidPendingForward();
+  }catch(e){
+    const msg=document.getElementById('pingmaInputMsg');
+    if(msg){msg.style.color='#b91c1c';msg.textContent=e.message||String(e);}
+    return null;
   }
-  const rec={
-    id:Date.now(),
-    frozenAt:new Date().toISOString(),
-    baseDate:latest.date,
-    basePeriod:Number(latest.period),
-    targetDate:'',
-    targetPeriod:null,
-    A:a,B:b,
-    status:'frozen',
-    actual:null,
-    Acoverage:null,Bcoverage:null,winner:null
-  };
-  PINGMA_FORWARD.push(rec);
-  savePingmaForward();
-  freezePingmaDefenderForward();
-  renderPingmaForward();
-  renderPingmaDefenderForward();
-  return rec;
 }
-function reconcilePingmaForward(record){
-  const f=getValidPendingForward();
+function reconcilePingmaForward(record,frozenOverride=null){
+  const f=frozenOverride||getValidPendingForward();
   if(!f)return;
   if(Number(f.basePeriod)>=Number(record.period))return;
   const actual=[...(record.zodiacs||[])];
@@ -1516,15 +1828,17 @@ function renderPingmaForward(){
 }
 function exportPingmaForward(){
   const payload={
-    version:'V22.6.5',
-    metric:'6平+1特，7球覆盖率；防守肖=7球中至少出现1次',
+    version:'V22.6.6',
+    metric:'平码A/B=6平+1特七球覆盖；防守肖=七球至少出现1次；特码Top5=实际特码生肖是否落入冻结5肖',
     abRecords:PINGMA_FORWARD,
-    defenderRecords:PINGMA_DEFENDER_FORWARD
+    defenderRecords:PINGMA_DEFENDER_FORWARD,
+    specialTop5Records:SPECIAL_TOP5_FORWARD,
+    specialTop5Protocol:{negative:'Logistic C=0.03 / 19 features',positive:'capacity-normalized stage2',spreadThreshold:0.07}
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='V22.6.5_平码AB与防守双轨前向记录.json';a.click();
+  a.href=url;a.download='V22.6.6_平码AB_防守_特码Top5真正前向记录.json';a.click();
   setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 
@@ -1548,6 +1862,7 @@ function bindPingmaManager(){
  const eb=document.getElementById('exportPingmaForwardBtn'); if(eb)eb.onclick=exportPingmaForward;
  renderPingmaForward();
  renderPingmaDefenderForward();
+ renderSpecialTop5Forward();
 }
 
 function renderV225DecisionLabs(){
