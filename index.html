@@ -231,7 +231,7 @@ body{background:var(--bg)!important;color:#0f172a}
 
 <div class="card" id="pingma6Card" style="padding:13px;margin-bottom:10px;border-color:#bfdbfe;background:linear-gradient(180deg,#fff,#f8fbff)">
   <div class="title">🧭 平码六肖</div>
-  <div class="sub" style="margin-top:4px">A组 · 当前冻结模型</div>
+  <div class="sub" style="margin-top:4px">A组 · 固定算法实时计算</div>
   <div id="pingma6Body" style="margin-top:10px"></div>
 
 <div id="pingmaForwardCard" style="margin-top:10px;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff">
@@ -1153,13 +1153,69 @@ function pingmaSixPrediction(){
  const rows=Z.map(z=>({z,score:f[z]+0.25*o[z]})).sort((a,b)=>b.score-a.score);
  return {six:rows.slice(0,6),all:rows};
 }
+
+function modelAStats(db){
+  const recent=db.slice(-20),freq=Object.fromEntries(Z.map(z=>[z,0]));
+  recent.forEach(r=>(r.zodiacs||[]).forEach(z=>{if(z in freq)freq[z]++;}));
+  const omission={};
+  Z.forEach(z=>{
+    let d=db.length+1;
+    for(let k=0;k<db.length;k++){
+      if((db[db.length-1-k].zodiacs||[]).includes(z)){d=k;break;}
+    }
+    omission[z]=d;
+  });
+  const f=pingmaZScore(freq),o=pingmaZScore(omission);
+  const rows=Z.map((z,i)=>({
+    z,
+    freq:freq[z],
+    omission:omission[z],
+    score:f[z]+0.25*o[z],
+    tie:i
+  })).sort((a,b)=>b.score-a.score||a.tie-b.tie);
+  return {rows,top6:rows.slice(0,6).map(x=>x.z)};
+}
+function renderARecalcAudit(){
+  if(PINGMA_DB.length<2)return '';
+  const current=modelAStats(PINGMA_DB);
+  const previous=modelAStats(PINGMA_DB.slice(0,-1));
+  const latest=PINGMA_DB[PINGMA_DB.length-1];
+  const same=current.top6.join('|')===previous.top6.join('|');
+  const changedIn=current.top6.filter(z=>!previous.top6.includes(z));
+  const changedOut=previous.top6.filter(z=>!current.top6.includes(z));
+  const top6Text=same
+    ?'A组已重新计算；本期加入后Top6集合未发生换位'
+    :`A组已重新计算；进入 ${changedIn.join('、')||'—'} / 移出 ${changedOut.join('、')||'—'}`;
+
+  const prevMap=Object.fromEntries(previous.rows.map(x=>[x.z,x]));
+  const detail=current.rows.map((x,rank)=>{
+    const p=prevMap[x.z];
+    const delta=p?x.score-p.score:0;
+    return {
+      z:x.z,rank:rank+1,score:x.score,delta,
+      freq:x.freq,omission:x.omission
+    };
+  });
+  const boundary=detail.slice(4,8);
+  return `<div style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0">
+    <div class="sub" style="font-weight:800;color:#334155">A组实时重算校验</div>
+    <div class="sub" style="margin-top:3px">已按最新 ${PINGMA_DB.length} 期重算 · 最新：${latest.date} / 第${latest.period}期</div>
+    <div class="sub" style="margin-top:3px">${top6Text}</div>
+    <div class="sub" style="margin-top:4px">边界分数：
+      ${boundary.map(x=>`${x.rank}.${x.z} ${x.score.toFixed(3)} (${x.delta>=0?'+':''}${x.delta.toFixed(3)})`).join(' ｜ ')}
+    </div>
+    <div class="sub" style="margin-top:3px;color:#64748b">括号内为“加入最新一期前→现在”的A分数变化；仅用于确认实时重算，不改变算法。</div>
+  </div>`;
+}
+
 function renderPingmaSix(){
  const el=document.getElementById('pingma6Body'); if(!el)return;
  const latest=PINGMA_DB[PINGMA_DB.length-1];
  const a=modelAOrder(PINGMA_DB).slice(0,6);
  el.innerHTML=`<div class="pingma-group-title">A组</div>
  <div class="pingma-zchips">${a.map(z=>`<span class="pingma-zchip">${z}</span>`).join('')}</div>
- <div class="sub" style="margin-top:7px">历史验证覆盖率 52.2%（6平+1特口径，仅历史回测）</div>`;
+ <div class="sub" style="margin-top:7px">历史验证覆盖率 52.2%（6平+1特口径，仅历史回测）</div>
+ ${renderARecalcAudit()}`;
  const sum=document.getElementById('pingmaDbSummary');
  if(sum)sum.textContent=`已加载 ${PINGMA_DB.length} 期；${PINGMA_DB[0].date} ～ ${latest.date}`;
 }
