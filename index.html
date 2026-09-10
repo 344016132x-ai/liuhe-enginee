@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.6.6 走势分析系统</title>
+<title>V22.6.6 走势分析系统 · 最终版</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -122,7 +122,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.6</span> <span style="font-size:9px;color:#94a3b8">FORWARD</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.6 FINAL</span> <span style="font-size:9px;color:#94a3b8">FORWARD</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -1708,37 +1708,33 @@ function renderSpecialTop5Forward(){
   if(!body||!badge)return;
   const st=specialTop5Stats();
   badge.textContent=`${st.n}期`;
-  let pending=getValidPendingSpecialTop5Forward();
+  const pending=getValidPendingSpecialTop5Forward();
   let html='';
+
   if(pending){
-    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
-      <div style="padding:8px;border:1px solid #bfdbfe;border-radius:10px;background:#f8fbff">
-        <div class="sub">负向Top5 · 已冻结</div>
-        <div style="font-weight:900;margin-top:3px">${pending.negativeTop5.join('、')}</div>
-      </div>
-      <div style="padding:8px;border:1px solid #e2e8f0;border-radius:10px">
-        <div class="sub">正向Top5 · 已冻结</div>
-        <div style="font-weight:900;margin-top:3px">${pending.positiveTop5.join('、')}</div>
-      </div>
-    </div>
-    <div class="sub" style="margin-top:6px">spread <b>${pending.spread.toFixed(4)}</b> · 状态 <b>${pending.state}</b> · 状态采用：<b>${pending.selectedTop5.join('、')}</b></div>
-    <div class="sub" style="margin-top:3px">第6边界观察肖：<b>${pending.boundary6}</b>（仅观察，不加入Top5）</div>
-    <div class="sub" style="margin-top:3px">基于 ${pending.baseDate} / 第${pending.basePeriod}期之后；开奖后只读对账。</div>`;
+    html+=`
+      <div style="padding:8px 10px;border:1px solid #dbeafe;border-radius:10px;background:#f8fbff">
+        <div style="font-size:12px;font-weight:900">负向Top5：${pending.negativeTop5.join('、')}</div>
+        <div class="sub" style="margin-top:5px">状态：<b>${pending.state}</b>（spread ${pending.spread.toFixed(4)}）</div>
+        <div class="sub" style="margin-top:5px">真正前向：${st.n}期${st.n?` · 命中 ${(st.sel*100).toFixed(1)}%`:''}</div>
+        <div class="sub" style="margin-top:4px;color:#64748b">历史参考：313期约52.4%（严格历史回测，不计入前向）</div>
+      </div>`;
   }else{
     try{
       const snap=buildSpecialTop5Snapshot(PINGMA_DB);
-      html+=`<div class="sub">尚未冻结。当前研究候选：负向 <b>${snap.negativeTop5.join('、')}</b> ｜ 正向 <b>${snap.positiveTop5.join('、')}</b></div>
-      <div class="sub" style="margin-top:3px">spread ${snap.spread.toFixed(4)} · ${snap.state} ｜ 第6观察 <b>${snap.boundary6}</b></div>`;
+      html+=`
+        <div style="padding:8px 10px;border:1px solid #dbeafe;border-radius:10px;background:#f8fbff">
+          <div style="font-size:12px;font-weight:900">负向Top5：${snap.negativeTop5.join('、')}</div>
+          <div class="sub" style="margin-top:5px">状态：<b>${snap.state}</b>（spread ${snap.spread.toFixed(4)}）</div>
+          <div class="sub" style="margin-top:5px">真正前向：${st.n}期${st.n?` · 命中 ${(st.sel*100).toFixed(1)}%`:''}</div>
+          <div class="sub" style="margin-top:4px;color:#64748b">历史参考：313期约52.4%（严格历史回测，不计入前向）</div>
+        </div>`;
     }catch(e){
       html+=`<div class="sub" style="color:#b91c1c">${e.message||e}</div>`;
     }
   }
-  html+=st.n
-    ?`<div class="sub" style="margin-top:6px">真正前向 ${st.n}期 · 负向 ${(st.neg*100).toFixed(1)}% · 正向 ${(st.pos*100).toFixed(1)}% · 状态采用 ${(st.sel*100).toFixed(1)}% · ON ${st.on}期${st.next?` · 下个检查点${st.next}期`:''}</div>`
-    :`<div class="sub" style="margin-top:6px">真正前向 0期 · 首个只读检查点30期；历史研究不计入。</div>`;
   body.innerHTML=html;
 }
-
 function nextPingmaTarget(){
   const latest=PINGMA_DB[PINGMA_DB.length-1];
   return {
