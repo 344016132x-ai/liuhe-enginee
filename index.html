@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.6.3 走势分析系统</title>
+<title>V22.6.4 走势分析系统</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -100,12 +100,29 @@ body{background:var(--bg)!important;color:#0f172a}
   .v224-head{padding-top:max(14px,env(safe-area-inset-top))}
   #algorithmAuditBox{font-size:10px}
 }
+
+/* V22.6.4 compact mobile refinements */
+#top5{max-width:372px;margin:0 auto}
+.kpi{padding:9px 10px;margin-bottom:7px;border-radius:12px}
+.kpi .z{width:36px;height:36px;font-size:17px;margin-right:9px;flex:0 0 36px}
+.kpi .score{font-size:18px;min-width:46px;text-align:right}
+.kpi .sub{line-height:1.3}
+#top5 .refnums{margin-top:2px;gap:4px}
+#top5 .refnum{width:24px;height:24px;font-size:11px}
+.pingma-group-title{font-size:11px;font-weight:900;color:#475569;margin-bottom:6px}
+.pingma-zchips{display:flex;flex-wrap:wrap;gap:7px}
+.pingma-zchip{display:inline-flex;align-items:center;justify-content:center;min-width:48px;padding:8px 12px;border:1px solid #bfdbfe;border-radius:999px;background:#fff;color:#1e3a8a;font-size:17px;font-weight:900}
+.preview-item{position:relative;width:58px;height:58px}
+.preview-item img{width:58px;height:58px;border-radius:9px;object-fit:cover;border:1px solid #ddd;display:block}
+.preview-remove{position:absolute;right:-5px;top:-7px;width:22px;height:22px;border:0;border-radius:50%;background:#111827;color:#fff;font-size:14px;line-height:22px;padding:0;font-weight:900;z-index:2}
+.inline-tools{display:flex;gap:6px;align-items:center}
+
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.3</span> <span style="font-size:9px;color:#94a3b8">AB-GATE</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.4</span> <span style="font-size:9px;color:#94a3b8">UI-FIX</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -160,15 +177,15 @@ body{background:var(--bg)!important;color:#0f172a}
         <div class="ocrbox">
           <div class="row between">
             <div><div class="title" style="font-size:13px">图片文字识别（本地 OCR）</div><div class="sub">识别后请人工核对，系统不会把 OCR 当作绝对正确。</div></div>
-            <button class="mini" id="ocrBtn">识别图片文字</button>
+            <div class="inline-tools"><button class="mini" id="clearOcrBtn" type="button">清除文字</button><button class="mini" id="ocrBtn">识别图片文字</button></div>
           </div>
           <div id="ocrStatus" class="ocrstatus">尚未执行 OCR。</div>
           <textarea class="input" id="ocrText" style="margin-top:8px;min-height:90px" placeholder="OCR 识别文字会出现在这里，你可以手动纠正。"></textarea>
         </div>
 
         <div style="margin-top:10px">
-          <div class="title" style="font-size:13px">画面标签（由你确认）</div>
-          <div class="sub">图片本身的隐喻不能靠免费 OCR 判断，所以用人工标签把画面证据真正接入辅助模型。</div>
+          <div class="row between" style="align-items:center"><div class="title" style="font-size:13px">画面标签（由你确认）</div><button class="mini" id="clearImageTagsBtn" type="button">清空标签</button></div>
+          <div class="sub">只保留你确认看得到的画面元素。</div>
           <div class="tags" id="imageTags"></div>
           <div class="suggestbox" id="tagSuggestionBox">
             <div class="suggesthead">
@@ -204,7 +221,6 @@ body{background:var(--bg)!important;color:#0f172a}
     </section>
 
     <section class="panel" id="panel-result">
-      <div class="notice" style="margin-bottom:12px">综合分 = 历史分(最多80) + 图文辅助分(全体共享最多20)。辅助分不是概率或胜率。</div>
       <div id="resultRuntimeStatus" class="btbox" style="margin-bottom:10px;background:#ecfdf5;border-color:#a7f3d0;color:#047857">计算引擎待启动…</div>
       
       
@@ -214,15 +230,15 @@ body{background:var(--bg)!important;color:#0f172a}
 
 
 <div class="card" id="pingma6Card" style="padding:13px;margin-bottom:10px;border-color:#bfdbfe;background:linear-gradient(180deg,#fff,#f8fbff)">
-  <div class="title">🧭 平码六肖 · 独立模型</div>
-  <div class="sub" style="margin-top:4px">已内置你之前提供并整理的553期平码数据，可查看、搜索、修改、继续追加。</div>
+  <div class="title">🧭 平码六肖</div>
+  <div class="sub" style="margin-top:4px">A组 · 当前冻结模型</div>
   <div id="pingma6Body" style="margin-top:10px"></div>
 
 <div id="pingmaForwardCard" style="margin-top:10px;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#fff">
   <div class="row between" style="align-items:flex-start;gap:8px">
     <div>
       <b style="font-size:13px">🧪 A/B 双轨前向验证</b>
-      <div class="sub" style="margin-top:3px;line-height:1.5">A＝当前纯平码冻结模型；B＝30期平码结构＋6平1特辅助支持。新增开奖必须先冻结两套六肖，录入后才允许自动对账。</div>
+      <div class="sub" style="margin-top:3px;line-height:1.5">下方仅显示B组；A组显示在上方。新增开奖前先冻结。</div>
     </div>
     <span id="pingmaForwardStatus" style="font-size:10px;font-weight:900;color:#475569;background:#f1f5f9;border-radius:999px;padding:4px 7px">0期</span>
   </div>
@@ -251,7 +267,7 @@ body{background:var(--bg)!important;color:#0f172a}
     <div id="pingmaInputPanel" style="display:none;margin-top:9px">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <label class="sub">日期<input id="pingmaDateInput" type="date" style="width:100%;margin-top:4px"></label>
-        <label class="sub">期数<input id="pingmaPeriodInput" type="number" placeholder="例如 248" style="width:100%;margin-top:4px"></label>
+        <label class="sub">期数<input id="pingmaPeriodInput" type="number" placeholder="自动推荐下一期" style="width:100%;margin-top:4px"></label>
       </div>
       <label class="sub" style="display:block;margin-top:8px">6个平码号码
         <input id="pingmaNumbersInput" placeholder="例如：03 09 18 27 36 45" style="width:100%;margin-top:4px">
@@ -270,9 +286,6 @@ body{background:var(--bg)!important;color:#0f172a}
   </div>
 </div>
 
-<div class="notice" style="margin-bottom:10px;background:#f8fafc;border-color:#e2e8f0;color:#475569">
-  每个 Top5 生肖显示两组2码：<b>数据2码</b>＝历史结构/间隔；<b>冷热2码</b>＝近期冷热/遗漏。两组均是历史特征参考，不是中奖概率。
-</div>
 <div id="top5"></div>
       
       <div class="card">
@@ -706,13 +719,46 @@ document.getElementById('applySuggestedTags').onclick=()=>{
  suggestedImageTags.forEach(t=>selectedImageTags.add(t));
  renderImageTags();
 };
+document.getElementById('clearOcrBtn').onclick=()=>{
+ const out=document.getElementById('ocrText');
+ if(out)out.value='';
+ const status=document.getElementById('ocrStatus');
+ if(status)status.textContent=selectedImageFiles.length?'识别文字已清除，可重新识别。':'尚未选择图片。';
+ updateTagSuggestionsFromText();
+};
+document.getElementById('clearImageTagsBtn').onclick=()=>{
+ selectedImageTags.clear();
+ suggestedImageTags.clear();
+ suggestedTagReasons=[];
+ renderImageTags();
+ renderSuggestedTags();
+};
+
 function clearPreviewUrls(){currentObjectUrls.forEach(u=>URL.revokeObjectURL(u));currentObjectUrls=[]}
-document.getElementById('imageInput').onchange=e=>{
+
+function renderSelectedImagePreviews(){
  clearPreviewUrls();
+ const box=document.getElementById('previewBox'); if(!box)return;
+ box.innerHTML='';
+ selectedImageFiles.forEach((f,idx)=>{
+   const u=URL.createObjectURL(f); currentObjectUrls.push(u);
+   const wrap=document.createElement('div');wrap.className='preview-item';
+   const im=document.createElement('img');im.src=u;
+   const del=document.createElement('button');del.type='button';del.className='preview-remove';del.textContent='×';del.setAttribute('aria-label','删除图片');
+   del.onclick=(ev)=>{
+     ev.preventDefault();ev.stopPropagation();
+     selectedImageFiles.splice(idx,1);
+     renderSelectedImagePreviews();
+     document.getElementById('ocrStatus').textContent=selectedImageFiles.length?`已选择 ${selectedImageFiles.length} 张图片。`:'尚未选择图片。';
+     updateTagSuggestionsFromText();
+   };
+   wrap.appendChild(im);wrap.appendChild(del);box.appendChild(wrap);
+ });
+}
+document.getElementById('imageInput').onchange=e=>{
  selectedImageFiles=[...e.target.files].slice(0,3);
- const box=document.getElementById('previewBox');box.innerHTML='';
- selectedImageFiles.forEach(f=>{const u=URL.createObjectURL(f);currentObjectUrls.push(u);const im=document.createElement('img');im.src=u;box.appendChild(im)});
- document.getElementById('ocrStatus').textContent=selectedImageFiles.length?`已选择 ${selectedImageFiles.length} 张图片，可执行本地 OCR。`:'尚未选择图片。';
+ renderSelectedImagePreviews();
+ document.getElementById('ocrStatus').textContent=selectedImageFiles.length?`已选择 ${selectedImageFiles.length} 张图片。`:'尚未选择图片。';
  updateTagSuggestionsFromText();
 };
 async function ensureTesseractLoaded(){
@@ -1095,11 +1141,13 @@ function pingmaSixPrediction(){
 }
 function renderPingmaSix(){
  const el=document.getElementById('pingma6Body'); if(!el)return;
- const r=pingmaSixPrediction(),latest=PINGMA_DB[PINGMA_DB.length-1],spread=r.all[5].score-r.all[6].score;
- const state=spread>=0.35?'结构较清晰':spread>=0.15?'一般':'低区分度';
- el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:7px">${r.six.map(x=>`<span style="padding:8px 11px;border:1px solid #bfdbfe;border-radius:999px;background:#fff;font-weight:900;color:#1e3a8a">${x.z}</span>`).join('')}</div>
- <div class="btbox" style="margin-top:9px"><b>模型状态：</b>${state} ｜ Top6/Top7边界 ${spread.toFixed(2)}<br><span class="sub">数据库 ${PINGMA_DB.length}期，最新 ${latest.date} / 第${latest.period}期；历史独立验证52.9%（n=223），随机基线50%。</span></div>`;
- const sum=document.getElementById('pingmaDbSummary'); if(sum)sum.textContent=`已加载 ${PINGMA_DB.length} 期；${PINGMA_DB[0].date} ～ ${latest.date}`;
+ const latest=PINGMA_DB[PINGMA_DB.length-1];
+ const a=modelAOrder(PINGMA_DB).slice(0,6);
+ el.innerHTML=`<div class="pingma-group-title">A组</div>
+ <div class="pingma-zchips">${a.map(z=>`<span class="pingma-zchip">${z}</span>`).join('')}</div>
+ <div class="sub" style="margin-top:7px">历史验证覆盖率 52.2%（6平+1特口径，仅历史回测）</div>`;
+ const sum=document.getElementById('pingmaDbSummary');
+ if(sum)sum.textContent=`已加载 ${PINGMA_DB.length} 期；${PINGMA_DB[0].date} ～ ${latest.date}`;
 }
 function pingmaBall(n){return `<span class="refnum ${color(Number(n))}">${String(n).padStart(2,'0')}</span>`;}
 function renderPingmaHistory(q=''){
@@ -1135,6 +1183,7 @@ function cancelPingmaEdit(){
  ['pingmaDateInput','pingmaPeriodInput','pingmaNumbersInput','pingmaSpecialInput'].forEach(id=>document.getElementById(id).value='');
  document.getElementById('pingmaEditHint').textContent='';
  document.getElementById('cancelPingmaEditBtn').style.display='none';
+ recommendNextPingmaPeriod(true);
 }
 function savePingmaRecord(){
  const msg=document.getElementById('pingmaInputMsg');
@@ -1163,6 +1212,7 @@ function savePingmaRecord(){
    const justSaved=PINGMA_DB.find(x=>x.date===date&&Number(x.period)===Number(period));
    if(!isEditing && justSaved) reconcilePingmaForward(justSaved);
    cancelPingmaEdit(); renderPingmaSix(); renderPingmaHistory(document.getElementById('pingmaSearchInput').value); renderPingmaForward();
+   recommendNextPingmaPeriod(true);
    msg.style.color='#047857'; msg.textContent='保存成功，平码数据库已更新';
  }catch(e){msg.style.color='#b91c1c';msg.textContent=e.message||String(e);}
 }
@@ -1286,42 +1336,50 @@ function renderPingmaForward(){
   const s=forwardStats();
   status.textContent=`${s.n}期`;
   const latestFrozen=[...PINGMA_FORWARD].reverse().find(x=>x.status==='frozen');
-  let html=`<div class="sub">已对账 <b>${s.n}</b> 期`;
-  if(s.n) html+=` ｜ A ${(s.a*100).toFixed(1)}% ｜ B ${(s.b*100).toFixed(1)}% ｜ A胜${s.aw} / B胜${s.bw} / 平${s.tie}`;
-  if(s.next) html+=` ｜ 下个检查点：${s.next}期`;
-  else html+=` ｜ 已达到100期决策节点`;
-  html+=`</div>`;
+  let html='';
   if(latestFrozen){
-    html+=`<div style="margin-top:7px;padding:8px;background:#f8fafc;border-radius:10px">
-      <div class="sub"><b>已冻结下一期：</b>基于 ${latestFrozen.baseDate} / 第${latestFrozen.basePeriod}期之后</div>
-      <div class="sub" style="margin-top:4px">A：${latestFrozen.A.join('、')}</div>
-      <div class="sub">B：${latestFrozen.B.join('、')}</div>
-    </div>`;
+    html+=`<div class="pingma-group-title">B组 · 已冻结下一期</div>
+      <div class="pingma-zchips">${latestFrozen.B.map(z=>`<span class="pingma-zchip">${z}</span>`).join('')}</div>
+      <div class="sub" style="margin-top:6px">基于 ${latestFrozen.baseDate} / 第${latestFrozen.basePeriod}期之后</div>`;
   }else{
-    html+=`<div class="sub" style="margin-top:7px;color:#b45309">当前没有有效的待对账冻结记录。系统会阻止直接录入新期开奖，必须先冻结 A/B。</div>`;
+    const b=modelBOrder(PINGMA_DB).slice(0,6);
+    html+=`<div class="pingma-group-title">B组 · 当前候选</div>
+      <div class="pingma-zchips">${b.map(z=>`<span class="pingma-zchip">${z}</span>`).join('')}</div>
+      <div class="sub" style="margin-top:6px;color:#b45309">尚未冻结下一期。</div>`;
   }
-  const recent=PINGMA_FORWARD.filter(x=>x.status==='reconciled').slice(-5).reverse();
-  if(recent.length){
-    html+=`<div style="margin-top:8px">${recent.map(x=>`<div class="sub" style="padding:5px 0;border-top:1px solid #f1f5f9">${x.targetDate} 第${x.targetPeriod}期 ｜ A ${(x.Acoverage*100).toFixed(1)}% ｜ B ${(x.Bcoverage*100).toFixed(1)}% ｜ ${x.winner==='平'?'平局':x.winner+'胜'}</div>`).join('')}</div>`;
+  if(s.n){
+    html+=`<div class="sub" style="margin-top:7px">前向已对账 ${s.n}期 · A ${(s.a*100).toFixed(1)}% · B ${(s.b*100).toFixed(1)}% · A胜${s.aw}/B胜${s.bw}/平${s.tie}${s.next?` · 下个检查点${s.next}期`:''}</div>`;
+  }else{
+    html+=`<div class="sub" style="margin-top:7px">前向已对账 0期 · 首个检查点30期</div>`;
   }
   body.innerHTML=html;
 }
 function exportPingmaForward(){
   const payload={
-    version:'V22.6.3',
+    version:'V22.6.4',
     metric:'6平+1特，7球覆盖率',
     records:PINGMA_FORWARD
   };
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='V22.6.3_平码AB前向记录.json';a.click();
+  a.href=url;a.download='V22.6.4_平码AB前向记录.json';a.click();
   setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+
+
+function recommendNextPingmaPeriod(force=false){
+ const input=document.getElementById('pingmaPeriodInput');
+ if(!input||pingmaEditKey)return;
+ const latest=PINGMA_DB[PINGMA_DB.length-1];
+ const next=latest?Number(latest.period)+1:1;
+ if(force || !input.value) input.value=next;
+ input.placeholder=`推荐下一期：${next}`;
 }
 
 function bindPingmaManager(){
  document.getElementById('togglePingmaHistoryBtn').onclick=()=>{const p=document.getElementById('pingmaHistoryPanel');p.style.display=p.style.display==='none'?'block':'none';if(p.style.display==='block')renderPingmaHistory(document.getElementById('pingmaSearchInput').value);};
- document.getElementById('togglePingmaInputBtn').onclick=()=>{const p=document.getElementById('pingmaInputPanel');p.style.display=p.style.display==='none'?'block':'none';};
+ document.getElementById('togglePingmaInputBtn').onclick=()=>{const p=document.getElementById('pingmaInputPanel');p.style.display=p.style.display==='none'?'block':'none';if(p.style.display==='block')recommendNextPingmaPeriod();};
  document.getElementById('savePingmaBtn').onclick=savePingmaRecord;
  document.getElementById('cancelPingmaEditBtn').onclick=cancelPingmaEdit;
  document.getElementById('pingmaSearchBtn').onclick=()=>renderPingmaHistory(document.getElementById('pingmaSearchInput').value);
@@ -1740,7 +1798,7 @@ function renderResultCore(){
          <div class="refnums"><span class="sub">数据2码：</span>${data2.map(n=>`<span class="refnum ${color(n)}">${String(n).padStart(2,'0')}</span>`).join('')}</div>
          <div class="refnums"><span class="sub">冷热2码：</span>${hotcold2.map(n=>`<span class="refnum ${color(n)}">${String(n).padStart(2,'0')}</span>`).join('')}</div>
        </div>`;
-       return `<div class="kpi"><div class="z">${x.z}</div><div style="min-width:0"><b>${['🥇 首选','🥈 次选','🥉 防守','🎖️ 边缘','🛟 备选'][i]}</b><div class="sub">历史：${x.h.toFixed(1)} ｜辅助：${x.a.toFixed(1)} ｜${x.r}</div>${numLine}</div><div class="score">${x.t.toFixed(1)}</div></div>`;
+       return `<div class="kpi"><div class="z">${x.z}</div><div style="min-width:0;flex:1"><b>${['🥇 首选','🥈 次选','🥉 防守','🎖️ 边缘','🛟 备选'][i]}</b><div class="sub">历史分 ${x.h.toFixed(1)} · 辅助分 ${x.a.toFixed(1)}</div>${numLine}</div><div class="score"><div style="font-size:9px;color:#94a3b8;font-weight:700">总分</div>${x.t.toFixed(1)}</div></div>`;
      }).join('');
    }
 
@@ -1826,8 +1884,7 @@ function ensureV224UI(){
     const g=document.createElement('div');
     g.id='resultGuideV224'; g.className='v224-audit';
     g.style.margin='10px 12px';
-    g.innerHTML=`<div class="v224-section-title">🎯 综合分析结果</div>
-      <div class="v224-note" style="margin-top:5px">生肖排序、同生肖2码、Kill3、置信度与历史/图文冲突分别计算后汇总；分数用于模型内部比较，不代表真实中奖概率。</div>`;
+    g.innerHTML=`<div class="v224-section-title">🎯 综合分析结果</div>`;
     rp.insertBefore(g,rp.firstChild);
   }
   renderV224Overview();
