@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.6.9 走势分析系统 · 历史遗留清理版</title>
+<title>V22.6.13 走势分析系统 · 特码生肖连带规律自动分析版</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -77,6 +77,8 @@ textarea.input{min-height:95px;resize:vertical}
 .table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:9px 5px;border-bottom:1px solid #f0f2f5;text-align:center}.table th:first-child,.table td:first-child{text-align:left}
 .bottom{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(406px,calc(100% - 24px));z-index:20}
 .bottom button{width:100%;background:var(--indigo);color:#fff;border:0;border-radius:16px;padding:14px;font-weight:800;box-shadow:0 8px 20px rgba(79,70,229,.25)}
+/* V22.6.10：给独立“生肖连带观察”预留底部安全区，避免被固定按钮遮挡 */
+#zodiacLinkageCard{margin-bottom:calc(105px + env(safe-area-inset-bottom))!important}
 .hide{display:none!important}
 .tag{display:inline-block;background:#eef2ff;color:#4338ca;border-radius:999px;padding:3px 7px;font-size:10px;margin:2px}
 .warn{color:#b45309}.ok{color:#047857}
@@ -310,9 +312,10 @@ body{background:var(--bg)!important;color:#0f172a}
 <!-- V22.6.8 独立辅助：生肖连带观察（不参与任何主模型评分） -->
 <div class="card" id="zodiacLinkageCard" style="margin-top:10px">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-    <div style="font-weight:900;font-size:13px">🔗 生肖连带观察</div>
+    <div style="font-weight:900;font-size:13px">🔗 特码生肖连带规律分析</div>
     <span class="badge">仅观察</span>
   </div>
+  <div class="sub" style="margin-top:7px;font-weight:800;color:#475569">仅观察：兔→马 ｜ 鼠→龙 ｜ 牛→蛇</div>
   <div id="zodiacLinkageBody" class="sub" style="margin-top:7px">等待历史数据…</div>
 </div>
 
@@ -1447,29 +1450,72 @@ function renderSpecialTop5Forward(){
   body.innerHTML=html;
 }
 
-const ZODIAC_LINKAGE_WATCH = Object.freeze([
-  {from:'兔',to:'马'},
-  {from:'鼠',to:'龙'},
-  {from:'牛',to:'蛇'}
-]);
-
-function linkageConditionalRate(db,fromZ,toZ,limit=null){
-  const rows=(db||[]).slice().sort((a,b)=>{
+// V22.6.13：特码生肖连带规律自动分析。
+// 独立只读模块：遍历 12×12 共 144 个“本期特码生肖 → 下一期特码生肖”组合，
+// 使用全期 / 近100期 / 近50期三个窗口，结合样本量与基准发生率做收缩评分，
+// 只用于规律观察，不写回任何主模型评分。
+function sortedSpecialRows(db){
+  return (db||[]).slice().sort((a,b)=>{
     const da=String(a.date||''), dbb=String(b.date||'');
     if(da!==dbb)return da.localeCompare(dbb);
     return Number(a.period||0)-Number(b.period||0);
-  });
-  const pairs=[];
+  }).filter(r=>Z.includes(r.specialZ || r.special_z || ''));
+}
+
+function linkageWindowStats(db,fromZ,toZ,periodLimit=null){
+  let rows=sortedSpecialRows(db);
+  if(periodLimit && rows.length>periodLimit+1) rows=rows.slice(-(periodLimit+1));
+  let n=0,hits=0,total=0,targetHits=0;
   for(let i=0;i<rows.length-1;i++){
-    const cur=rows[i], nxt=rows[i+1];
-    const regular=[cur.z1,cur.z2,cur.z3,cur.z4,cur.z5,cur.z6].filter(Boolean);
-    if(regular.includes(fromZ)){
-      pairs.push({hit:nxt.special_z===toZ});
+    const cur=rows[i].specialZ || rows[i].special_z || '';
+    const nxt=rows[i+1].specialZ || rows[i+1].special_z || '';
+    if(!Z.includes(cur)||!Z.includes(nxt))continue;
+    total++;
+    if(nxt===toZ)targetHits++;
+    if(cur===fromZ){
+      n++;
+      if(nxt===toZ)hits++;
     }
   }
-  const use=limit?pairs.slice(-limit):pairs;
-  const n=use.length, hits=use.reduce((s,x)=>s+(x.hit?1:0),0);
-  return {n,hits,rate:n?hits/n:null};
+  const baseline=total?targetHits/total:1/12;
+  const rate=n?hits/n:null;
+  // 3个“基准等效样本”的经验贝叶斯收缩，抑制1~2次触发造成的虚高100%。
+  const adjusted=n?(hits+3*baseline)/(n+3):baseline;
+  return {n,hits,rate,baseline,adjusted,lift:baseline>0?adjusted/baseline:null,total};
+}
+
+function buildZodiacLinkageAnalysis(db){
+  const rows=sortedSpecialRows(db);
+  if(rows.length<2)return {rows,pairs:[],top:[],latest:null,current:[]};
+  const pairs=[];
+  Z.forEach(from=>Z.forEach(to=>{
+    const all=linkageWindowStats(rows,from,to,null);
+    const w100=linkageWindowStats(rows,from,to,100);
+    const w50=linkageWindowStats(rows,from,to,50);
+    const comps=[{w:.45,s:all,min:6},{w:.30,s:w100,min:4},{w:.25,s:w50,min:3}];
+    let num=0,den=0;
+    comps.forEach(c=>{
+      if(c.s.n>=c.min){
+        num+=c.w*(c.s.adjusted-c.s.baseline);
+        den+=c.w;
+      }
+    });
+    const support=Math.min(1,Math.sqrt(all.n/12));
+    const score=(den?num/den:0)*support;
+    let trend='样本不足';
+    if(all.n>=6){
+      if(w50.n>=3 && w50.adjusted-all.adjusted>=0.08) trend='近期增强';
+      else if(w50.n>=3 && w50.adjusted-all.adjusted<=-0.08) trend='近期减弱';
+      else trend='相对稳定';
+    }
+    pairs.push({from,to,all,w100,w50,score,trend});
+  }));
+  const eligible=pairs.filter(p=>p.all.n>=6 && p.all.hits>=1);
+  eligible.sort((a,b)=>b.score-a.score || b.all.n-a.all.n || b.all.hits-a.all.hits || a.from.localeCompare(b.from,'zh-CN') || a.to.localeCompare(b.to,'zh-CN'));
+  const top=eligible.slice(0,5);
+  const latest=rows[rows.length-1]?.specialZ || rows[rows.length-1]?.special_z || null;
+  const current=eligible.filter(p=>p.from===latest).slice(0,3);
+  return {rows,pairs,top,latest,current};
 }
 
 function renderZodiacLinkage(){
@@ -1479,20 +1525,47 @@ function renderZodiacLinkage(){
     el.innerHTML='历史数据不足';
     return;
   }
-  const rows=ZODIAC_LINKAGE_WATCH.map(x=>{
-    const all=linkageConditionalRate(PINGMA_DB,x.from,x.to,null);
-    const r100=linkageConditionalRate(PINGMA_DB,x.from,x.to,100);
-    const r50=linkageConditionalRate(PINGMA_DB,x.from,x.to,50);
-    const fmt=o=>o.rate==null?'—':`${(o.rate*100).toFixed(1)}%`;
-    return `
-      <div style="padding:6px 0;border-top:1px solid #eef2f7">
-        <b>${x.from} → ${x.to}</b>
-        <span style="margin-left:6px">全 ${fmt(all)}</span>
-        <span style="margin-left:6px">近100 ${fmt(r100)}</span>
-        <span style="margin-left:6px">近50 ${fmt(r50)}</span>
-      </div>`;
-  }).join('');
-  el.innerHTML=rows+`<div style="margin-top:5px;color:#64748b">历史条件观察，不参与A/B、防守或特码Top5评分。</div>`;
+  const a=buildZodiacLinkageAnalysis(PINGMA_DB);
+  if(a.rows.length<2){
+    el.innerHTML='特码生肖历史数据不足';
+    return;
+  }
+  const top=a.top;
+  const watchZodiacs=[...new Set(top.flatMap(x=>[x.from,x.to]))];
+  const fmt=s=>s.rate==null?'—':`${(s.rate*100).toFixed(1)}%`;
+  const fmtBase=s=>`${(s.baseline*100).toFixed(1)}%`;
+  const fmtLift=s=>s.lift==null?'—':`${s.lift.toFixed(2)}×`;
+  const summary=`
+    <div style="margin-bottom:8px;padding:8px 9px;background:#f8fafc;border:1px solid #eef2f7;border-radius:9px;color:#334155">
+      <div><b>自动演算：</b>12×12＝144种特码生肖连带</div>
+      <div style="margin-top:4px"><b>仅观察生肖：</b>${watchZodiacs.length?watchZodiacs.join('、'):'暂无达到最低样本门槛的组合'}</div>
+      <div style="margin-top:3px;color:#64748b">统计口径：本期彩票特码生肖 → 下一期同类特码生肖；全期 + 近100期 + 近50期联合观察。</div>
+    </div>`;
+
+  let currentHtml='';
+  if(a.latest){
+    const nexts=a.current;
+    currentHtml=`<div style="padding:8px 9px;margin-bottom:8px;border:1px solid #dbeafe;background:#f8fbff;border-radius:9px">
+      <div style="font-weight:900;font-size:12px">当前最新特码生肖：${a.latest}</div>
+      <div style="margin-top:4px">${nexts.length
+        ? `其历史连带观察：${nexts.map((p,i)=>`${i+1}. ${p.to}（全期${fmt(p.all)}，${p.trend}）`).join('　')}`
+        : '当前生肖的历史触发样本不足，暂不列强连带。'}</div>
+    </div>`;
+  }
+
+  const topHtml=top.length?top.map((p,i)=>`
+    <div style="padding:7px 0;border-top:1px solid #eef2f7">
+      <div><b>${i+1}. ${p.from} → ${p.to}</b> <span style="margin-left:6px;color:#475569">${p.trend}</span></div>
+      <div style="margin-top:3px">
+        全期 ${fmt(p.all)}（${p.all.hits}/${p.all.n}）
+        <span style="margin-left:6px">近100 ${fmt(p.w100)}</span>
+        <span style="margin-left:6px">近50 ${fmt(p.w50)}</span>
+      </div>
+      <div style="margin-top:2px;color:#64748b">目标生肖基准 ${fmtBase(p.all)} · 收缩后相对基准 ${fmtLift(p.all)}</div>
+    </div>`).join(''):`<div style="padding:7px 0">当前历史样本不足，暂无满足门槛的连带组合。</div>`;
+
+  el.innerHTML=summary+currentHtml+`<div style="font-weight:900;font-size:12px;margin:4px 0 2px">历史连带 Top5（自动发现）</div>`+topHtml+
+    `<div style="margin-top:7px;color:#64748b;line-height:1.55">说明：系统会自动遍历全部144种组合，并对小样本做收缩处理，避免“只触发1～2次却显示100%”的假强规律。此模块仍为独立只读观察，不参与A/B、防守、杀号、特码Top5或任何主模型评分。</div>`;
 }
 
 function loadPingmaForward(){
@@ -2077,7 +2150,7 @@ function safeRenderResult(){
    if(status){status.style.background='#fef2f2';status.style.borderColor='#fecaca';status.style.color='#b91c1c';status.textContent='✕ 综合引擎异常：'+String(e?.message||e);}
  }
 }
-function renderAll(){calcHistory();renderHistory();renderAux();safeRenderResult();renderV224Overview()}
+function renderAll(){calcHistory();renderHistory();renderAux();safeRenderResult();renderZodiacLinkage();renderV224Overview()}
 if(!Array.isArray(history)||history.length===0){
  history=[...defaultHistory];
  save();
