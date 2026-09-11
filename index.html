@@ -77,8 +77,7 @@ textarea.input{min-height:95px;resize:vertical}
 .table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:9px 5px;border-bottom:1px solid #f0f2f5;text-align:center}.table th:first-child,.table td:first-child{text-align:left}
 .bottom{position:fixed;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(406px,calc(100% - 24px));z-index:20}
 .bottom button{width:100%;background:var(--indigo);color:#fff;border:0;border-radius:16px;padding:14px;font-weight:800;box-shadow:0 8px 20px rgba(79,70,229,.25)}
-/* V22.6.10：给独立“生肖连带观察”预留底部安全区，避免被固定按钮遮挡 */
-#zodiacLinkageCard{margin-bottom:calc(105px + env(safe-area-inset-bottom))!important}
+/* V22.6.14：连带规律已移至综合输出中部，不再需要独立底部安全区 */
 .hide{display:none!important}
 .tag{display:inline-block;background:#eef2ff;color:#4338ca;border-radius:999px;padding:3px 7px;font-size:10px;margin:2px}
 .warn{color:#b45309}.ok{color:#047857}
@@ -231,6 +230,40 @@ body{background:var(--bg)!important;color:#0f172a}
 
 
 
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #dbeafe">
+    <div class="row between"><b>📚 平码历史数据</b><button id="togglePingmaHistoryBtn" type="button" class="smallbtn">查看/收起</button></div>
+    <div id="pingmaDbSummary" class="sub" style="margin-top:5px"></div>
+    <div id="pingmaHistoryPanel" style="display:none;margin-top:9px">
+      <div style="display:flex;gap:7px;margin-bottom:8px">
+        <input id="pingmaSearchInput" placeholder="搜索日期或期数，如 247" style="flex:1">
+        <button id="pingmaSearchBtn" type="button" class="smallbtn">搜索</button>
+      </div>
+      <div id="pingmaHistoryList" style="max-height:340px;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;background:white"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #dbeafe">
+    <div class="row between"><b>＋ 录入最新平码</b><button id="togglePingmaInputBtn" type="button" class="smallbtn">展开/收起</button></div>
+    <div id="pingmaInputPanel" style="display:none;margin-top:9px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label class="sub">日期<input id="pingmaDateInput" type="date" style="width:100%;margin-top:4px"></label>
+        <label class="sub">期数<input id="pingmaPeriodInput" type="number" placeholder="自动推荐下一期" style="width:100%;margin-top:4px"></label>
+      </div>
+      <label class="sub" style="display:block;margin-top:8px">6个平码号码
+        <input id="pingmaNumbersInput" placeholder="例如：03 09 18 27 36 45" style="width:100%;margin-top:4px">
+      </label>
+      <label class="sub" style="display:block;margin-top:8px">特码（新期开奖必填）
+        <input id="pingmaSpecialInput" type="number" min="1" max="49" placeholder="1-49" style="width:100%;margin-top:4px">
+      </label>
+      <div id="pingmaEditHint" class="sub" style="margin-top:7px;color:#b45309"></div>
+<div class="sub" style="margin-top:5px;color:#475569">前向验证规则：新增下一期开奖前先点击上方“冻结下一期 · 全部前向”；新期开奖必须录入6平+1特；修改旧历史记录不会补造过去预测。</div>
+      <div style="display:flex;gap:8px;margin-top:9px">
+        <button id="savePingmaBtn" type="button" class="primary" style="flex:1">保存平码数据</button>
+        <button id="cancelPingmaEditBtn" type="button" class="smallbtn" style="display:none">取消修改</button>
+      </div>
+      <div id="pingmaInputMsg" class="sub" style="margin-top:7px"></div>
+    </div>
+  </div>
 <div class="card" id="pingma6Card" style="padding:13px;margin-bottom:10px;border-color:#bfdbfe;background:linear-gradient(180deg,#fff,#f8fbff)">
   <div class="title">🧭 平码六肖</div>
   <div class="sub" style="margin-top:4px">A组 · 固定算法实时计算</div>
@@ -266,58 +299,26 @@ body{background:var(--bg)!important;color:#0f172a}
 </div>
 
 
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #dbeafe">
-    <div class="row between"><b>📚 平码历史数据</b><button id="togglePingmaHistoryBtn" type="button" class="smallbtn">查看/收起</button></div>
-    <div id="pingmaDbSummary" class="sub" style="margin-top:5px"></div>
-    <div id="pingmaHistoryPanel" style="display:none;margin-top:9px">
-      <div style="display:flex;gap:7px;margin-bottom:8px">
-        <input id="pingmaSearchInput" placeholder="搜索日期或期数，如 247" style="flex:1">
-        <button id="pingmaSearchBtn" type="button" class="smallbtn">搜索</button>
-      </div>
-      <div id="pingmaHistoryList" style="max-height:340px;overflow:auto;border:1px solid #e2e8f0;border-radius:12px;background:white"></div>
-    </div>
-  </div>
 
-  <div style="margin-top:12px;padding-top:12px;border-top:1px solid #dbeafe">
-    <div class="row between"><b>＋ 录入最新平码</b><button id="togglePingmaInputBtn" type="button" class="smallbtn">展开/收起</button></div>
-    <div id="pingmaInputPanel" style="display:none;margin-top:9px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <label class="sub">日期<input id="pingmaDateInput" type="date" style="width:100%;margin-top:4px"></label>
-        <label class="sub">期数<input id="pingmaPeriodInput" type="number" placeholder="自动推荐下一期" style="width:100%;margin-top:4px"></label>
-      </div>
-      <label class="sub" style="display:block;margin-top:8px">6个平码号码
-        <input id="pingmaNumbersInput" placeholder="例如：03 09 18 27 36 45" style="width:100%;margin-top:4px">
-      </label>
-      <label class="sub" style="display:block;margin-top:8px">特码（新期开奖必填）
-        <input id="pingmaSpecialInput" type="number" min="1" max="49" placeholder="1-49" style="width:100%;margin-top:4px">
-      </label>
-      <div id="pingmaEditHint" class="sub" style="margin-top:7px;color:#b45309"></div>
-<div class="sub" style="margin-top:5px;color:#475569">前向验证规则：新增下一期开奖前先点击上方“冻结下一期 · 全部前向”；新期开奖必须录入6平+1特；修改旧历史记录不会补造过去预测。</div>
-      <div style="display:flex;gap:8px;margin-top:9px">
-        <button id="savePingmaBtn" type="button" class="primary" style="flex:1">保存平码数据</button>
-        <button id="cancelPingmaEditBtn" type="button" class="smallbtn" style="display:none">取消修改</button>
-      </div>
-      <div id="pingmaInputMsg" class="sub" style="margin-top:7px"></div>
-    </div>
-  </div>
 </div>
 
 <div id="top5"></div>
       
+      <!-- V22.6.15：特码生肖连带规律仅在综合输出显示，置于12生肖分数明细上方；平码历史数据/录入最新平码已上移到平码六肖上方 -->
+      <div class="card" id="zodiacLinkageCard" style="margin-top:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div style="font-weight:900;font-size:13px">🔗 特码生肖连带规律分析</div>
+          <span class="badge">仅观察</span>
+        </div>
+        <div class="sub" style="margin-top:7px;font-weight:800;color:#475569">仅观察：兔→马 ｜ 鼠→龙 ｜ 牛→蛇</div>
+        <div id="zodiacLinkageBody" class="sub" style="margin-top:7px">等待历史数据…</div>
+      </div>
+
       <div class="card">
         <div class="title" style="margin-bottom:8px">12生肖分数明细</div>
         <table class="table"><thead><tr><th>生肖</th><th>历史(80)</th><th>辅助(20)</th><th>总分</th></tr></thead><tbody id="scoreBody"></tbody></table>
       </div>
     </section>
-<!-- V22.6.8 独立辅助：生肖连带观察（不参与任何主模型评分） -->
-<div class="card" id="zodiacLinkageCard" style="margin-top:10px">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-    <div style="font-weight:900;font-size:13px">🔗 特码生肖连带规律分析</div>
-    <span class="badge">仅观察</span>
-  </div>
-  <div class="sub" style="margin-top:7px;font-weight:800;color:#475569">仅观察：兔→马 ｜ 鼠→龙 ｜ 牛→蛇</div>
-  <div id="zodiacLinkageBody" class="sub" style="margin-top:7px">等待历史数据…</div>
-</div>
 
   </main>
 
