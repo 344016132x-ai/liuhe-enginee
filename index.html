@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.6.13 走势分析系统 · 特码生肖连带规律自动分析版</title>
+<title>V22.6.21 走势分析系统 · 保留当前位置版</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -176,10 +176,6 @@ body{background:var(--bg)!important;color:#0f172a}
           </button>
         </div>
       </div>
-          <button class="mini" id="restoreInitialHistoryBtn" type="button" style="color:#b45309;white-space:nowrap">恢复内置初始数据</button>
-        </div>
-      </div>
-
     </section>
 
     <section class="panel" id="panel-poetry">
@@ -2228,6 +2224,11 @@ function ensureV224UI(){
     box.className='v224-audit';
     box.style.margin='10px 12px';
     hp.appendChild(box);
+  }
+  // 高级维护始终放在历史页最底部，避免夹在常用数据区中间造成误触。
+  if(hp){
+    const maintenance=document.getElementById('historyRecoveryCard');
+    if(maintenance) hp.appendChild(maintenance);
   }
 
   // 图文页分区标题
