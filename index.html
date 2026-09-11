@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>V22.6.7 走势分析系统 · 工程加固版</title>
+<title>V22.6.9 走势分析系统 · 历史遗留清理版</title>
 <style>
 :root{
   --bg:#f4f6f8;--card:#fff;--text:#111827;--muted:#6b7280;--line:#e5e7eb;
@@ -122,7 +122,7 @@ body{background:var(--bg)!important;color:#0f172a}
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.7 FINAL</span> <span style="font-size:9px;color:#94a3b8">FORWARD</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
+    <div class="brand"><h1>📊 双模型系统 <span style="font-size:10px;background:#dc2626;border-radius:5px;padding:2px 5px">V22.6.9 FINAL</span> <span style="font-size:9px;color:#94a3b8">FORWARD</span></h1><p>特码系统冻结 · 双2码参考 · 独立平码六肖 · 无 API Key</p></div>
     <button class="reset" id="resetBtn">重置系统</button>
   </header>
 
@@ -307,6 +307,15 @@ body{background:var(--bg)!important;color:#0f172a}
         <table class="table"><thead><tr><th>生肖</th><th>历史(80)</th><th>辅助(20)</th><th>总分</th></tr></thead><tbody id="scoreBody"></tbody></table>
       </div>
     </section>
+<!-- V22.6.8 独立辅助：生肖连带观察（不参与任何主模型评分） -->
+<div class="card" id="zodiacLinkageCard" style="margin-top:10px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+    <div style="font-weight:900;font-size:13px">🔗 生肖连带观察</div>
+    <span class="badge">仅观察</span>
+  </div>
+  <div id="zodiacLinkageBody" class="sub" style="margin-top:7px">等待历史数据…</div>
+</div>
+
   </main>
 
   <div class="bottom" id="bottomAction"><button id="goResult">点击生成最终报告 →</button></div>
@@ -392,196 +401,7 @@ let lastKillBacktest=null;
 let evidenceLogs=[];
 try{evidenceLogs=JSON.parse(localStorage.getItem('v22_evidence_logs')||'[]');if(!Array.isArray(evidenceLogs))evidenceLogs=[]}catch(e){evidenceLogs=[]}
 
-let forwardShadowLogs=[];
-try{forwardShadowLogs=JSON.parse(localStorage.getItem('v22_forward_shadow_logs')||'[]');if(!Array.isArray(forwardShadowLogs))forwardShadowLogs=[]}catch(e){forwardShadowLogs=[]}
-function saveForwardShadowLogs(){
- forwardShadowLogs=forwardShadowLogs.slice(-300);
- requireLocalSet('v22_forward_shadow_logs',JSON.stringify(forwardShadowLogs),'旧盲测日志');
-}
-function currentTargetPeriod(){return history.length?Math.max(...history.map(x=>Number(x.period)||0))+1:1}
-function forwardEvidenceState(){
- return {
-   manual:(document.getElementById('clueText')?.value||'').trim(),
-   ocr:(document.getElementById('ocrText')?.value||'').trim(),
-   tags:[...selectedImageTags],suggestedTags:[...suggestedImageTags],excluded:[...explicitExcluded],weights:{...weights}
- };
-}
-function makeHistoryFingerprint(hist=history){
- return hist.slice(0,30).map(x=>`${x.period}:${x.number}`).join('|');
-}
-function buildForwardShadowSnapshot(){
- const targetPeriod=currentTargetPeriod();
- const primary=selectPrimaryHistoryModel();
- const aux=auxScores();
- const scores=Z.map(z=>({z,h:Number(primary.scores[z]||0),a:Number(aux[z]||0),t:Number(primary.scores[z]||0)+Number(aux[z]||0)})).sort((a,b)=>b.t-a.t);
- const competition=runNumberModelCompetition(120);
- const shadowModel=competition?.winner?.id||'A_CURRENT';
- const numberRefs={};
- Z.forEach(z=>numberRefs[z]=getReferenceNumbersByModel(z,history,shadowModel).map(x=>Number(x.num)));
- let rawKills=[];
- try{rawKills=getKillCandidates(scores).slice(0,3).map(x=>x.z)}catch(e){console.error('影子Kill3构建异常',e)}
- const numGate=numberGateStatus(),killGate=killGateStatus();
- let v225NumberTiers={},v225KillTiers={};
- try{
-   const labs=getV225Labs();
-   [10,5,2].forEach(k=>{const t=labs.number.tiers[k];v225NumberTiers[k]={modelId:t.winner.id,modelName:t.winner.name,candidates:[...t.candidates],historyGatePass:t.pass};});
-   [1,2,3].forEach(k=>{const t=labs.kill.tiers[k];v225KillTiers[k]={modelId:t.winner.id,modelName:t.winner.name,candidates:[...t.candidates],historyGatePass:t.pass};});
- }catch(e){console.error('V22.5.0盲测候选冻结异常',e)}
- return {
-   schemaVersion:1,status:'PENDING',targetPeriod,createdAt:new Date().toISOString(),
-   historyCount:history.length,historyLatestPeriod:history[0]?.period??null,historyFingerprint:makeHistoryFingerprint(),
-   primaryHistoryModel:primary.name,top5:scores.slice(0,5).map(x=>x.z),top3:scores.slice(0,3).map(x=>x.z),top1:scores[0]?.z??null,
-   scoreSnapshot:scores.map(x=>({z:x.z,h:x.h,a:x.a,t:x.t})),
-   shadowNumberModelId:shadowModel,shadowNumberModelName:competition?.winner?.name||shadowModel,
-   shadowNumberRefs:numberRefs,shadowKill3:rawKills,
-   gatesAtFreeze:{numberPass:numGate.pass===true,killPass:killGate.pass===true},
-   v225DecisionLab:{numberTiers:v225NumberTiers,killTiers:v225KillTiers},
-   evidence:forwardEvidenceState()
- };
-}
-
-const BLIND_PROTOCOL_VERSION='V22.5.0';
-const BLIND_MIN_FIRST_AUDIT=30;
-function blindAlgorithmFingerprint(){
- const payload=[
-   BLIND_PROTOCOL_VERSION,
-   String(calcHistoryLegacyFor),
-   String(calcHistoryFor),
-   String(runAlgorithmABBacktest),
-   String(selectPrimaryHistoryModel),
-   String(runNumberModelCompetition),
-   String(runKillModelCompetition),
-   String(runGlobal49NumberLab),
-   String(runKillTierLab),
-   String(numberGateStatus),
-   String(killGateStatus)
- ].join('||');
- let h=2166136261;
- for(let i=0;i<payload.length;i++){h^=payload.charCodeAt(i);h=Math.imul(h,16777619)}
- return ('00000000'+(h>>>0).toString(16)).slice(-8);
-}
-
-function blindRuntimeSelfCheck(){
- const required=[
-   'calcHistoryLegacyFor','calcHistoryFor','runAlgorithmABBacktest','selectPrimaryHistoryModel',
-   'runNumberModelCompetition','runKillModelCompetition','runGlobal49NumberLab','runKillTierLab',
-   'numberGateStatus','killGateStatus','buildForwardShadowSnapshot','markBlindSnapshot',
-   'freezeForwardShadow','reconcileForwardShadow'
- ];
- const missing=required.filter(name=>typeof globalThis[name]!=='function');
- let fingerprint=null,error=null;
- try{fingerprint=blindAlgorithmFingerprint()}catch(e){error=String(e)}
- return {
-   ok:missing.length===0&&!error,
-   missing,
-   fingerprint,
-   error,
-   note:'该旧盲测模块在V22.6.6当前UI中没有freezeForwardBtn/forwardAuditStatus/forwardAuditStats入口；仅保留为兼容遗留代码。'
- };
-}
-
-function blindProtocolState(){
- const resolved=forwardShadowLogs.filter(x=>x.status==='RESOLVED'&&x.blindProtocolVersion===BLIND_PROTOCOL_VERSION);
- const pending=forwardShadowLogs.filter(x=>x.status==='PENDING'&&x.blindProtocolVersion===BLIND_PROTOCOL_VERSION);
- return {resolved:resolved.length,pending:pending.length,fingerprint:blindAlgorithmFingerprint()};
-}
-function markBlindSnapshot(snap){
- snap.schemaVersion=2;
- snap.blindProtocolVersion=BLIND_PROTOCOL_VERSION;
- snap.algorithmFingerprint=blindAlgorithmFingerprint();
- snap.auditPolicy={
-   minimumFirstAudit:BLIND_MIN_FIRST_AUDIT,
-   noRetuneBeforeFirstAudit:true,
-   numberGateFrozen:true,
-   killGateFrozen:true,
-   historicalTuningForbidden:true
- };
- snap.modelLock={
-   numberModelId:snap.shadowNumberModelId,
-   numberModelName:snap.shadowNumberModelName,
-   killCandidates:[...(snap.shadowKill3||[])],
-   primaryHistoryModel:snap.primaryHistoryModel
- };
- return snap;
-}
-function freezeForwardShadow(){
- const p=currentTargetPeriod();
- const existing=forwardShadowLogs.find(x=>Number(x.targetPeriod)===p);
- if(existing){renderForwardAudit();return existing}
- const snap=markBlindSnapshot(buildForwardShadowSnapshot());
- forwardShadowLogs.push(snap);saveForwardShadowLogs();renderForwardAudit();return snap;
-}
-function evaluateForwardResolution(log,number){
- const actualNumber=Number(number),actualZodiac=zodiac(actualNumber);
- const refs=Array.isArray(log.shadowNumberRefs?.[actualZodiac])?log.shadowNumberRefs[actualZodiac]:[];
- const poolSize=numberPool(actualZodiac).length;
- return {
-   actualNumber,actualZodiac,
-   top1Hit:log.top1===actualZodiac,
-   top3Hit:(log.top3||[]).includes(actualZodiac),
-   top5Hit:(log.top5||[]).includes(actualZodiac),
-   number2Hit:refs.includes(actualNumber),
-   endToEnd2Hit:(log.top5||[]).includes(actualZodiac)&&refs.includes(actualNumber),
-   killFalse:(log.shadowKill3||[]).includes(actualZodiac),
-   v225Number10Hit:(log.v225DecisionLab?.numberTiers?.[10]?.candidates||[]).includes(actualNumber),
-   v225Number5Hit:(log.v225DecisionLab?.numberTiers?.[5]?.candidates||[]).includes(actualNumber),
-   v225Number2Hit:(log.v225DecisionLab?.numberTiers?.[2]?.candidates||[]).includes(actualNumber),
-   v225Kill1False:(log.v225DecisionLab?.killTiers?.[1]?.candidates||[]).includes(actualZodiac),
-   v225Kill2False:(log.v225DecisionLab?.killTiers?.[2]?.candidates||[]).includes(actualZodiac),
-   v225Kill3False:(log.v225DecisionLab?.killTiers?.[3]?.candidates||[]).includes(actualZodiac),
-   numberRandomBaseline:Math.min(1,2/Math.max(1,poolSize))
- };
-}
-function reconcileForwardShadow(period,number){
- const p=Number(period),n=Number(number);
- const log=forwardShadowLogs.find(x=>Number(x.targetPeriod)===p);
- if(!log)return false;
- const ev=evaluateForwardResolution(log,n);
- if(log.status==='RESOLVED' && Number(log.actualNumber)===n)return true;
- if(log.status==='RESOLVED' && Number(log.actualNumber)!==n){
-   log.correctionCount=(Number(log.correctionCount)||0)+1;log.correctedAt=new Date().toISOString();
- }
- Object.assign(log,ev,{status:'RESOLVED',resolvedAt:log.resolvedAt||new Date().toISOString(),resolvedUnderVersion:BLIND_PROTOCOL_VERSION});
- saveForwardShadowLogs();return true;
-}
-function forwardStats(){
- const rows=forwardShadowLogs.filter(x=>x.status==='RESOLVED');
- const n=rows.length,rate=key=>n?rows.filter(x=>x[key]===true).length/n:0;
- const baseline=n?rows.reduce((s,x)=>s+(Number(x.numberRandomBaseline)||0),0)/n:0;
- return {n,top1:rate('top1Hit'),top3:rate('top3Hit'),top5:rate('top5Hit'),number2:rate('number2Hit'),end2:rate('endToEnd2Hit'),killFalse:rate('killFalse'),numberBaseline:baseline};
-}
-function forwardMilestoneText(n){
- if(n<30)return `正式盲测 ${n}/30：算法冻结；禁止调参、换冠军或解锁2码/Kill3。`;
- if(n<50)return `第一次审计已具备样本 ${n}/50：只允许审查，不允许用这批结果反向改写已记录预测。`;
- if(n<100)return `稳定性观察 ${n}/100：可比较分段表现；任何升级必须建立新版本、新指纹重新前瞻验证。`;
- return `长期盲测 ${n}：可做正式实用性审查；仍不得把命中率表述为未来确定概率。`;
-}
-function renderForwardAudit(){
- const status=document.getElementById('forwardAuditStatus'),statsEl=document.getElementById('forwardAuditStats'),btn=document.getElementById('freezeForwardBtn');
- if(!status||!statsEl)return;
- const p=currentTargetPeriod(),log=forwardShadowLogs.find(x=>Number(x.targetPeriod)===p),s=forwardStats(),bp=blindProtocolState();
- if(log){
-   status.style.background='#ecfdf5';status.style.borderColor='#a7f3d0';status.style.color='#047857';
-   status.innerHTML=`✓ 第 <b>${p}</b> 期盲测快照已冻结 · ${new Date(log.createdAt).toLocaleString('zh-CN',{hour12:false})}<br><span style="color:#64748b">算法指纹 ${log.algorithmFingerprint||'旧日志'} · 冻结后不允许改写该期候选。</span>`;
-   if(btn){btn.textContent='本期盲测已冻结';btn.disabled=true;btn.style.opacity='.55'}
- }else{
-   status.style.background='#fff7ed';status.style.borderColor='#fed7aa';status.style.color='#9a3412';
-   status.innerHTML=`第 <b>${p}</b> 期尚未冻结。必须在知道开奖结果之前点击“冻结本期盲测”；开奖后补冻不属于有效前瞻证据。<br><span style="color:#64748b">当前算法指纹：${bp.fingerprint}</span>`;
-   if(btn){btn.textContent='冻结本期盲测';btn.disabled=false;btn.style.opacity='1'}
- }
- const pct=v=>(v*100).toFixed(1)+'%';
- const blindRows=forwardShadowLogs.filter(x=>x.status==='RESOLVED'&&x.blindProtocolVersion===BLIND_PROTOCOL_VERSION);
- const bn=blindRows.length,brate=key=>bn?blindRows.filter(x=>x[key]===true).length/bn:0;
- const bbase=bn?blindRows.reduce((sum,x)=>sum+(Number(x.numberRandomBaseline)||0),0)/bn:0;
- statsEl.innerHTML=`<b>V22.5.0有效盲测：${bn} 期</b> ｜ ${forwardMilestoneText(bn)}<br>`+
-   (bn?`Top1 ${pct(brate('top1Hit'))} · Top3 ${pct(brate('top3Hit'))} · Top5 ${pct(brate('top5Hit'))} ｜ 影子2码 ${pct(brate('number2Hit'))} vs 随机基线 ${pct(bbase)} ｜ 端到端 ${pct(brate('endToEnd2Hit'))} ｜ Kill3误杀 ${pct(brate('killFalse'))} vs 随机25.0%`:
-   `尚无V22.5.0开奖后盲测样本。旧版前瞻日志保留但不计入本轮30期解锁审计。`) +
-   `<br><span style="color:#64748b">待开奖 ${bp.pending} 期 · 算法指纹 ${bp.fingerprint} · 旧前瞻对账 ${s.n} 期仅作历史记录</span>`;
-}
-function exportForwardLogs(){
- const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),version:'V22.5.0',protocol:'formal-blind-audit',algorithmFingerprint:blindAlgorithmFingerprint(),minimumFirstAudit:30,logs:forwardShadowLogs},null,2)],{type:'application/json'});
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='V22.5.0_blind_audit_logs.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},200);
-}
+// V22.6.9：已删除无UI入口的 V22.5.0 Shadow/盲测遗留模块；正式前向由平码A/B、防守、特码Top5三轨负责。
 function saveEvidenceSnapshot(){
  const manual=(document.getElementById('clueText')?.value||'').trim();
  const ocr=(document.getElementById('ocrText')?.value||'').trim();
@@ -622,7 +442,6 @@ document.getElementById('bulkToggle').onclick=()=>{
 };
 function addRecord(period,num){
  if(!Number.isInteger(period)||!Number.isInteger(num)||num<1||num>49)return false;
- reconcileForwardShadow(period,num);
  const z=legacyZodiacForPeriod(num,period); const rec={period,number:num,zodiac:z,type:POULTRY.includes(z)?'家禽':'野兽'};
  const i=history.findIndex(x=>Number(x.period)===Number(period));
  if(i>=0) history[i]=rec; else history.push(rec);
@@ -666,7 +485,6 @@ document.getElementById('bulkImportBtn').onclick=()=>{
    if(!m){bad.push(idx+1);return}
    const p=Number(m[1]),n=Number(m[2]);
    if(!Number.isInteger(p)||!Number.isInteger(n)||n<1||n>49||p<LEGACY_HISTORY_PERIOD_MIN||p>LEGACY_HISTORY_PERIOD_MAX){bad.push(idx+1);return}
-   reconcileForwardShadow(p,n);
    const z=legacyZodiacForPeriod(n,p);
    const rec={period:p,number:n,zodiac:z,type:POULTRY.includes(z)?'家禽':'野兽'};
    const i=history.findIndex(x=>Number(x.period)===p); if(i>=0)history[i]=rec;else history.push(rec); c++;
@@ -1003,185 +821,7 @@ const NUMBER_MODELS=[
 ];
 
 // ============================================================
-// V22.5.0 — 49号码独立竞争 + Kill1/2/3 分档竞争
-// 说明：历史回测仅用于模型比较，不等于未来中奖概率。
-// ============================================================
-const V225_NUMBER_MODELS = [
-  {id:'A_CURRENT',name:'稳健混合',complexity:3},
-  {id:'B_GAP1',name:'间隔比值',complexity:2},
-  {id:'C_MOMENTUM',name:'多窗动量',complexity:3},
-  {id:'D_UNDER',name:'低暴露',complexity:3},
-  {id:'E_GAP_CLOSE',name:'中位间隔贴合',complexity:1},
-  {id:'F_MID_OMIT',name:'中段遗漏',complexity:2},
-  {id:'G_ENSEMBLE',name:'多模型秩融合',complexity:4}
-];
-
-function rankAll49ByModel(modelId,hist=history){
-  const nums=Array.from({length:49},(_,i)=>i+1);
-  if(modelId==='G_ENSEMBLE'){
-    const rankSum=Object.fromEntries(nums.map(n=>[n,0]));
-    ['B_GAP1','C_MOMENTUM','E_GAP_CLOSE','A_CURRENT'].forEach(mid=>{
-      const ordered=[...nums].sort((a,b)=>numberModelScore(mid,b,hist)-numberModelScore(mid,a,hist)||a-b);
-      ordered.forEach((n,i)=>rankSum[n]+=i);
-    });
-    return nums.map(n=>({...numberFeatures(n,hist),score:200-rankSum[n]*2,modelId}))
-      .sort((a,b)=>b.score-a.score||b.omission-a.omission||a.num-b.num);
-  }
-  return nums.map(n=>({...numberFeatures(n,hist),score:numberModelScore(modelId,n,hist),modelId}))
-    .sort((a,b)=>b.score-a.score||b.omission-a.omission||a.num-b.num);
-}
-
-function buildNumberPositionMap(modelId,chronological,indices){
-  const pos=new Map();
-  indices.forEach(i=>{
-    const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period);
-    const ranked=rankAll49ByModel(modelId,train);
-    const actual=Number(chronological[i].number);
-    pos.set(i,ranked.findIndex(x=>Number(x.num)===actual)+1);
-  });
-  return pos;
-}
-
-function summarizeNumberPositions(posMap,indices,k){
-  let hits=0;
-  indices.forEach(i=>{if((posMap.get(i)||999)<=k)hits++});
-  const n=indices.length;
-  return {tests:n,hits,rate:n?hits/n:0,baseline:k/49};
-}
-
-function numberTierGate(k,cal,val,segments,totalTests){
-  const req={
-    10:{cal:.07,val:.07,seg:.02},
-    5:{cal:.05,val:.05,seg:.015},
-    2:{cal:.03,val:.03,seg:.01}
-  }[k];
-  const calEdge=cal.rate-cal.baseline;
-  const valEdge=val.rate-val.baseline;
-  const segEdges=segments.map(s=>s.rate-s.baseline);
-  const stable=segEdges.filter(x=>x>=0).length;
-  const enough=totalTests>=120 && val.tests>=60;
-  const pass=enough && calEdge>=req.cal && valEdge>=req.val && stable===3 && segEdges.every(x=>x>=req.seg);
-  const reason=!enough?'样本不足':
-    calEdge<req.cal?`校准优势不足${Math.round(req.cal*100)}pp`:
-    valEdge<req.val?`独立验证优势不足${Math.round(req.val*100)}pp`:
-    stable<3?'三个时间段未全部稳定':
-    segEdges.some(x=>x<req.seg)?'分段优势不足':'历史闸门通过，仍需前瞻盲测';
-  return {pass,reason,calEdge,valEdge,segEdges,stable};
-}
-
-function runGlobal49NumberLab(maxSteps=120){
-  const chronological=[...history].sort((a,b)=>a.period-b.period);
-  const start=Math.max(45,chronological.length-maxSteps);
-  const indices=[];for(let i=start;i<chronological.length;i++)indices.push(i);
-  const split=Math.floor(indices.length/2),calIdx=indices.slice(0,split),valIdx=indices.slice(split);
-  const segSize=Math.max(1,Math.floor(indices.length/3));
-  const segs=[indices.slice(0,segSize),indices.slice(segSize,segSize*2),indices.slice(segSize*2)];
-  const maps={};
-  V225_NUMBER_MODELS.forEach(m=>maps[m.id]=buildNumberPositionMap(m.id,chronological,indices));
-  const tiers={};
-  [10,5,2].forEach(k=>{
-    const rows=V225_NUMBER_MODELS.map(model=>{
-      const mp=maps[model.id];
-      const cal=summarizeNumberPositions(mp,calIdx,k);
-      const val=summarizeNumberPositions(mp,valIdx,k);
-      const all=summarizeNumberPositions(mp,indices,k);
-      const segments=segs.map(s=>summarizeNumberPositions(mp,s,k));
-      return {...model,cal,val,all,segments};
-    });
-    const ranked=[...rows].sort((a,b)=>
-      (b.cal.rate-b.cal.baseline)-(a.cal.rate-a.cal.baseline) ||
-      a.complexity-b.complexity || a.id.localeCompare(b.id)
-    );
-    const winner=ranked[0];
-    const gate=numberTierGate(k,winner.cal,winner.val,winner.segments,indices.length);
-    const candidates=rankAll49ByModel(winner.id,history).slice(0,k).map(x=>Number(x.num));
-    tiers[k]={k,rows,winner,candidates,...gate,calibrationTests:calIdx.length,validationTests:valIdx.length};
-  });
-  return {tests:indices.length,tiers};
-}
-
-function buildKillPositionMap(modelId,chronological,indices){
-  const pos=new Map();
-  indices.forEach(i=>{
-    const train=chronological.slice(0,i).sort((a,b)=>b.period-a.period);
-    const ranked=killModelRows(modelId,train).sort((a,b)=>b.score-a.score||a.z.localeCompare(b.z));
-    const actual=chronological[i].zodiac;
-    pos.set(i,ranked.findIndex(x=>x.z===actual)+1);
-  });
-  return pos;
-}
-
-function summarizeKillPositions(posMap,indices,k){
-  let falseKills=0;
-  indices.forEach(i=>{if((posMap.get(i)||999)<=k)falseKills++});
-  const n=indices.length;
-  return {tests:n,falseKills,rate:n?falseKills/n:0,baseline:k/12};
-}
-
-function killTierGate(k,cal,val,segments,totalTests){
-  const reqImprove={1:.025,2:.035,3:.05}[k];
-  const calImprove=cal.baseline-cal.rate;
-  const valImprove=val.baseline-val.rate;
-  const segImprove=segments.map(s=>s.baseline-s.rate);
-  const stable=segImprove.filter(x=>x>=0).length;
-  const enough=totalTests>=120 && val.tests>=60;
-  const pass=enough && calImprove>=reqImprove && valImprove>=reqImprove && stable===3;
-  const reason=!enough?'样本不足':
-    calImprove<reqImprove?`校准误杀改善不足${(reqImprove*100).toFixed(1)}pp`:
-    valImprove<reqImprove?`独立验证误杀改善不足${(reqImprove*100).toFixed(1)}pp`:
-    stable<3?'三个时间段未全部稳定':
-    '历史闸门通过，仍需前瞻盲测';
-  return {pass,reason,calImprove,valImprove,segImprove,stable};
-}
-
-function runKillTierLab(maxSteps=120){
-  const chronological=[...history].sort((a,b)=>a.period-b.period);
-  const start=Math.max(45,chronological.length-maxSteps);
-  const indices=[];for(let i=start;i<chronological.length;i++)indices.push(i);
-  const split=Math.floor(indices.length/2),calIdx=indices.slice(0,split),valIdx=indices.slice(split);
-  const segSize=Math.max(1,Math.floor(indices.length/3));
-  const segs=[indices.slice(0,segSize),indices.slice(segSize,segSize*2),indices.slice(segSize*2)];
-  const maps={};
-  KILL_MODELS.forEach(m=>maps[m.id]=buildKillPositionMap(m.id,chronological,indices));
-  const tiers={};
-  [1,2,3].forEach(k=>{
-    const rows=KILL_MODELS.map(model=>{
-      const mp=maps[model.id];
-      const cal=summarizeKillPositions(mp,calIdx,k);
-      const val=summarizeKillPositions(mp,valIdx,k);
-      const all=summarizeKillPositions(mp,indices,k);
-      const segments=segs.map(s=>summarizeKillPositions(mp,s,k));
-      return {...model,cal,val,all,segments};
-    });
-    const ranked=[...rows].sort((a,b)=>
-      (b.cal.baseline-b.cal.rate)-(a.cal.baseline-a.cal.rate) ||
-      a.complexity-b.complexity || a.id.localeCompare(b.id)
-    );
-    const winner=ranked[0];
-    const gate=killTierGate(k,winner.cal,winner.val,winner.segments,indices.length);
-    const candidates=killModelRows(winner.id,history)
-      .sort((a,b)=>b.score-a.score||a.z.localeCompare(b.z)).slice(0,k).map(x=>x.z);
-    tiers[k]={k,rows,winner,candidates,...gate,calibrationTests:calIdx.length,validationTests:valIdx.length};
-  });
-  return {tests:indices.length,tiers};
-}
-
-let V225_LAB_CACHE={key:null,number:null,kill:null};
-function v225LabKey(){
-  return `${history.length}|${makeHistoryFingerprint()}|${BLIND_PROTOCOL_VERSION}`;
-}
-function getV225Labs(){
-  const key=v225LabKey();
-  if(V225_LAB_CACHE.key!==key){
-    V225_LAB_CACHE={key,number:runGlobal49NumberLab(120),kill:runKillTierLab(120)};
-  }
-  return V225_LAB_CACHE;
-}
-
-function labBallHtml(nums){
-  return nums.map(n=>`<span class="refnum ${color(n)}" style="margin:2px">${String(n).padStart(2,'0')}</span>`).join('');
-}
-
+// V22.6.9：已删除无UI入口的 V22.5.0 49号码/Kill分档实验室遗留。
 function getDataTwoNumbers(zodiacName,hist=history){
   const nums=numberPool(zodiacName);
   return nums.map(n=>{
@@ -1245,15 +885,6 @@ function pingmaZScore(obj){
  if(sd<1e-12){Z.forEach(z=>out[z]=0);return out;}
  Z.forEach((z,i)=>out[z]=(arr[i]-mean)/sd); return out;
 }
-function pingmaSixPrediction(){
- const recent=PINGMA_DB.slice(-20),freq=Object.fromEntries(Z.map(z=>[z,0]));
- recent.forEach(r=>r.zodiacs.forEach(z=>{if(z in freq)freq[z]++;}));
- const om={}; Z.forEach(z=>{let d=PINGMA_DB.length+1;for(let k=0;k<PINGMA_DB.length;k++){if(PINGMA_DB[PINGMA_DB.length-1-k].zodiacs.includes(z)){d=k;break;}}om[z]=d;});
- const f=pingmaZScore(freq),o=pingmaZScore(om);
- const rows=Z.map(z=>({z,score:f[z]+0.25*o[z]})).sort((a,b)=>b.score-a.score);
- return {six:rows.slice(0,6),all:rows};
-}
-
 function modelAStats(db){
   const recent=db.slice(-20),freq=Object.fromEntries(Z.map(z=>[z,0]));
   recent.forEach(r=>(r.zodiacs||[]).forEach(z=>{if(z in freq)freq[z]++;}));
@@ -1396,6 +1027,7 @@ function savePingmaRecord(){
    }
    cancelPingmaEdit(); renderPingmaSix(); renderPingmaHistory(document.getElementById('pingmaSearchInput').value);
    renderPingmaForward(); renderPingmaDefenderForward(); renderSpecialTop5Forward();
+  renderZodiacLinkage();
    recommendNextPingmaPeriod(true);
    msg.style.color='#047857'; msg.textContent='保存成功；A/B、防守、特码Top5真正前向已完成对账';
  }catch(e){msg.style.color='#b91c1c';msg.textContent=e.message||String(e);}
@@ -1496,28 +1128,6 @@ function getValidPendingDefenderForward(){
   return [...PINGMA_DEFENDER_FORWARD].reverse().find(x=>
     x.status==='frozen' && x.baseDate===latest.date && Number(x.basePeriod)===Number(latest.period)
   )||null;
-}
-function freezePingmaDefenderForward(){
-  const latest=PINGMA_DB[PINGMA_DB.length-1];
-  if(!latest)return null;
-  const existing=getValidPendingDefenderForward();
-  if(existing)return existing;
-  const original=defenderFromDb(PINGMA_DB,false);
-  const normalized=defenderFromDb(PINGMA_DB,true);
-  const rec={
-    id:Date.now()+1,
-    protocol:'V22.6.5-DEFENDER-TRUE-FORWARD',
-    frozenAt:new Date().toISOString(),
-    baseDate:latest.date,
-    basePeriod:Number(latest.period),
-    original:{z:original.z,rank:original.rank,streak:original.streak},
-    normalized:{z:normalized.z,rank:normalized.rank,streak:normalized.streak},
-    status:'frozen',targetDate:'',targetPeriod:null,
-    actual:null,originalHit:null,normalizedHit:null
-  };
-  PINGMA_DEFENDER_FORWARD.push(rec);
-  savePingmaDefenderForward();
-  return rec;
 }
 function reconcilePingmaDefenderForward(record,frozenOverride=null){
   const f=frozenOverride||getValidPendingDefenderForward();
@@ -1836,13 +1446,55 @@ function renderSpecialTop5Forward(){
   }
   body.innerHTML=html;
 }
-function nextPingmaTarget(){
-  const latest=PINGMA_DB[PINGMA_DB.length-1];
-  return {
-    expectedAfterDate: latest?.date||'',
-    expectedAfterPeriod: Number(latest?.period||0)
-  };
+
+const ZODIAC_LINKAGE_WATCH = Object.freeze([
+  {from:'兔',to:'马'},
+  {from:'鼠',to:'龙'},
+  {from:'牛',to:'蛇'}
+]);
+
+function linkageConditionalRate(db,fromZ,toZ,limit=null){
+  const rows=(db||[]).slice().sort((a,b)=>{
+    const da=String(a.date||''), dbb=String(b.date||'');
+    if(da!==dbb)return da.localeCompare(dbb);
+    return Number(a.period||0)-Number(b.period||0);
+  });
+  const pairs=[];
+  for(let i=0;i<rows.length-1;i++){
+    const cur=rows[i], nxt=rows[i+1];
+    const regular=[cur.z1,cur.z2,cur.z3,cur.z4,cur.z5,cur.z6].filter(Boolean);
+    if(regular.includes(fromZ)){
+      pairs.push({hit:nxt.special_z===toZ});
+    }
+  }
+  const use=limit?pairs.slice(-limit):pairs;
+  const n=use.length, hits=use.reduce((s,x)=>s+(x.hit?1:0),0);
+  return {n,hits,rate:n?hits/n:null};
 }
+
+function renderZodiacLinkage(){
+  const el=document.getElementById('zodiacLinkageBody');
+  if(!el)return;
+  if(!Array.isArray(PINGMA_DB)||PINGMA_DB.length<2){
+    el.innerHTML='历史数据不足';
+    return;
+  }
+  const rows=ZODIAC_LINKAGE_WATCH.map(x=>{
+    const all=linkageConditionalRate(PINGMA_DB,x.from,x.to,null);
+    const r100=linkageConditionalRate(PINGMA_DB,x.from,x.to,100);
+    const r50=linkageConditionalRate(PINGMA_DB,x.from,x.to,50);
+    const fmt=o=>o.rate==null?'—':`${(o.rate*100).toFixed(1)}%`;
+    return `
+      <div style="padding:6px 0;border-top:1px solid #eef2f7">
+        <b>${x.from} → ${x.to}</b>
+        <span style="margin-left:6px">全 ${fmt(all)}</span>
+        <span style="margin-left:6px">近100 ${fmt(r100)}</span>
+        <span style="margin-left:6px">近50 ${fmt(r50)}</span>
+      </div>`;
+  }).join('');
+  el.innerHTML=rows+`<div style="margin-top:5px;color:#64748b">历史条件观察，不参与A/B、防守或特码Top5评分。</div>`;
+}
+
 function loadPingmaForward(){
   try{
     const x=JSON.parse(localStorage.getItem(PINGMA_FORWARD_KEY)||'[]');
@@ -2018,44 +1670,6 @@ function bindPingmaManager(){
  renderSpecialTop5Forward();
 }
 
-function renderV225DecisionLabs(){
-  const nbox=document.getElementById('number49LabBody');
-  const kbox=document.getElementById('killTierLabBody');
-  if(!nbox||!kbox)return;
-  try{
-    const labs=getV225Labs(),pct=v=>(v*100).toFixed(1)+'%';
-    nbox.innerHTML=[10,5,2].map(k=>{
-      const t=labs.number.tiers[k];
-      const label=k===10?'候选10码':k===5?'精选5码':'实验2码';
-      return `<div class="btbox" style="margin-top:7px;background:${t.pass?'#ecfdf5':'#fff7ed'};border-color:${t.pass?'#a7f3d0':'#fed7aa'}">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
-          <div><b>${label}</b> · ${t.winner.name}<br>
-          <span class="sub">校准 ${pct(t.winner.cal.rate)} / 基线 ${pct(t.winner.cal.baseline)} → 验证 ${pct(t.winner.val.rate)} / 基线 ${pct(t.winner.val.baseline)} · 稳定 ${t.stable}/3</span></div>
-          <span style="font-weight:900;color:${t.pass?'#047857':'#b45309'}">${t.pass?'历史闸门通过':'影子候选'}</span>
-        </div>
-        <div style="margin-top:7px">${labBallHtml(t.candidates)}</div>
-        <div class="sub" style="margin-top:5px">${t.reason}。${t.pass?'仍需V22.5.0正式前瞻盲测后才可称为可用。':'当前只用于观察，不作为正式推荐。'}</div>
-      </div>`;
-    }).join('');
-    kbox.innerHTML=[1,2,3].map(k=>{
-      const t=labs.kill.tiers[k],baseline=k/12;
-      return `<div class="btbox" style="margin-top:7px;background:${t.pass?'#ecfdf5':'#fff7ed'};border-color:${t.pass?'#a7f3d0':'#fed7aa'}">
-        <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
-          <div><b>Kill${k}</b> · ${t.winner.name}<br>
-          <span class="sub">校准误杀 ${pct(t.winner.cal.rate)} → 验证误杀 ${pct(t.winner.val.rate)} · 随机基线 ${pct(baseline)} · 稳定 ${t.stable}/3</span></div>
-          <span style="font-weight:900;color:${t.pass?'#047857':'#b91c1c'}">${t.pass?'历史闸门通过':'影子观察'}</span>
-        </div>
-        <div style="margin-top:7px;font-weight:900;color:#1e3a8a">${t.candidates.join('、')}</div>
-        <div class="sub" style="margin-top:5px">${t.reason}。${t.pass?'仍需正式盲测确认。':'不作为正式排除结论。'}</div>
-      </div>`;
-    }).join('');
-  }catch(e){
-    console.error('V22.5.0决策实验室异常',e);
-    nbox.innerHTML='<div class="sub" style="color:#b91c1c">49号码实验室暂不可用；原综合输出不受影响。</div>';
-    kbox.innerHTML='<div class="sub" style="color:#b91c1c">Kill分档实验室暂不可用；原综合输出不受影响。</div>';
-  }
-}
-
 function numberPool(zodiacName){const nums=[];for(let n=1;n<=49;n++)if(zodiac(n)===zodiacName)nums.push(n);return nums;}
 function getReferenceNumbersByModel(zodiacName,hist=history,modelId='A_CURRENT'){
  const nums=numberPool(zodiacName);
@@ -2107,13 +1721,6 @@ function runNumberModelCompetition(maxSteps=120){
  const gateReason=!enough?'样本不足':calEdge<0.05?'校准优势不足5pp':valEdge<0.05?'独立验证优势不足5pp':stableWins<3?'三个时间段未全部稳定':segmentEdges.some(x=>x<0.02)?'分段优势不足2pp':'通过';
  return {tests:indices.length,rows,winner,stableWins,enough,pass,gateReason,calEdge,valEdge,segmentEdges,calibrationTests:calIdx.length,validationTests:valIdx.length};
 }
-function getReferenceNumbers(zodiacName,hist=history){
- // 实际展示使用当前全量历史闸门选出的候选；历史回测内部必须显式指定模型，避免递归与偷看未来。
- let modelId='A_CURRENT';
- try{const c=runNumberModelCompetition(120);modelId=c.winner?.id||modelId;}catch(e){console.warn('号码模型竞争降级',e)}
- return getReferenceNumbersByModel(zodiacName,hist,modelId);
-}
-
 function currentOmissionForZodiac(z,hist=history){
  const i=hist.findIndex(h=>h.zodiac===z);return i<0?hist.length:i;
 }
@@ -2204,10 +1811,6 @@ function runKillModelCompetition(maxSteps=120){
  const gateReason=!enough?'样本不足':winner.cal.rate>.20?'校准误杀率高于20%':winner.val.rate>.20?'独立验证误杀率高于20%':stableWins<3?'三个时间段未全部≤23%':'通过';
  return {tests:indices.length,rows,winner,calEdge,valEdge,stableWins,enough,pass,gateReason,calibrationTests:calIdx.length,validationTests:valIdx.length};
 }
-function activeKillCandidates(scores,hist=history){
- try{const c=runKillModelCompetition(120);return getKillCandidatesByModel(scores,hist,c.winner?.id||'K_CURRENT')}catch(e){return getKillCandidates(scores,hist)}
-}
-
 function calcHistoryLegacyFor(hist){
  const hs={};
  const recent5=hist.slice(0,5);
